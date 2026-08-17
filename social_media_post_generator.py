@@ -1,8 +1,12 @@
-import google.generativeai as genai
+﻿import google.generativeai as genai
+from dotenv import load_dotenv
 import os
 
+# Load environment variables from .env file
+load_dotenv()
+
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def generate_social_media_post(topic, platform):
     prompt = f"Generate a creative social media post for {platform} about {topic}. Include relevant hashtags."

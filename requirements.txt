@@ -1,0 +1,6 @@
+﻿# GenAI Inter Project Requirements
+# Generated from analysis of all project files
+
+# Core Dependencies
+google-generativeai
+python-dotenv
