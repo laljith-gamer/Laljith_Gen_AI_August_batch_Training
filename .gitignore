@@ -1,4 +1,4 @@
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *.class
@@ -57,3 +57,5 @@ coverage-3.8.bdists/
 *.cover
 .pytest_cache/
 mypy_cache/
+notes/
+docs/
