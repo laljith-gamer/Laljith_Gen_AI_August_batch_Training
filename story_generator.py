@@ -1,17 +1,19 @@
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 import os
 
 # Load environment variables from .env file
 load_dotenv()
 
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def generate_story(prompt):
     """Generates a story based on the provided prompt."""
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
+        )
         return response.text
     except Exception as e:
         return f"An error occurred: {e}"
