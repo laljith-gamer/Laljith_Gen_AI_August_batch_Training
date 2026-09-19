@@ -1,8 +1,9 @@
 """
 Job Matching UI Component displaying Top-N semantic matches and relevance feedback.
+Scannable cards, human match insights, and streamlined resume tailoring actions.
 """
 
-from typing import List
+from typing import List, Optional
 import streamlit as st
 
 from src.models.schemas import JobMatchResult, JobPosting
@@ -13,37 +14,53 @@ from src.human_loop.audit import AuditLogger
 from app.state import AppStateManager
 
 def render_job_matches():
-    st.subheader("Semantic Job Search & Matching")
-    
+    st.subheader("Explore matching opportunities")
+    st.markdown(
+        "Semantic matching compares your confirmed profile against active roles in the job corpus. "
+        "Select a role to tailor your resume bullet points and address skill gaps."
+    )
+
     if not AppStateManager.is_profile_approved():
-        st.warning(
-            "🔒 **Human Approval Required**: You must review and approve your candidate profile "
-            "before semantic job matching can be performed."
-        )
+        with st.container(border=True):
+            st.warning("Review your profile before continuing · Job matching requires a confirmed candidate profile.")
+            if st.button("Review profile →", type="primary"):
+                AppStateManager.set_active_view("Profile")
+                st.rerun()
         return
 
     profile = AppStateManager.get_approved_profile()
-    
-    # Controls Header
-    col1, col2, col3 = st.columns([2, 2, 1])
-    with col1:
-        loc_filter = st.text_input("Filter by Location (optional)", placeholder="e.g. San Francisco or Remote")
-    with col2:
-        top_k = st.slider("Number of Matches (Top-K)", min_value=3, max_value=10, value=5)
-    with col3:
-        st.write("")
-        st.write("")
-        rerun_search = st.button("🔄 Run Matching", type="primary", use_container_width=True)
 
-    # Execute search if requested or if not yet populated
-    if rerun_search or not st.session_state.get("job_matches"):
-        with st.spinner("Searching job corpus with FAISS using your approved candidate profile..."):
+    # Search & Filter Row
+    s_col1, s_col2, s_col3 = st.columns([3, 2, 1])
+    with s_col1:
+        keyword_filter = st.text_input("Keywords or title", placeholder="e.g. Backend, AI/ML, Cloud", label_visibility="collapsed")
+    with s_col2:
+        loc_filter = st.text_input("Location", placeholder="e.g. San Francisco or Remote", label_visibility="collapsed")
+    with s_col3:
+        search_clicked = st.button("Search jobs", type="primary")
+
+    with st.expander("Search options"):
+        top_k = st.slider("Maximum results to show", min_value=3, max_value=10, value=5)
+
+    # Search Execution
+    needs_search = search_clicked or not st.session_state.get("job_matches")
+    if needs_search:
+        with st.spinner("Finding roles that match your confirmed profile..."):
             engine = JobSearchEngine()
             matches = engine.search_matching_jobs(
                 profile,
                 top_k=top_k,
-                location_filter=loc_filter,
+                location_filter=loc_filter.strip() if loc_filter else None,
             )
+            # Filter locally by keyword if provided
+            if keyword_filter.strip():
+                kw = keyword_filter.strip().lower()
+                matches = [
+                    m for m in matches
+                    if kw in m.job.title.lower()
+                    or kw in m.job.description.lower()
+                    or any(kw in s.lower() for s in m.job.skills)
+                ]
             st.session_state.job_matches = matches
             AuditLogger.log_event("JOB_SEARCH_EXECUTED", "SYSTEM", "SUCCESS", {
                 "target_role": profile.target_role,
@@ -53,72 +70,70 @@ def render_job_matches():
 
     matches: List[JobMatchResult] = st.session_state.get("job_matches", [])
     if not matches:
-        st.info("No matching jobs found matching the criteria. Try lowering the threshold or clearing filters.")
+        with st.container(border=True):
+            st.info("No matching roles found with the current filters. Try broadening your location or clearing keywords.")
         return
 
-    st.markdown(f"**Found {len(matches)} matching positions for approved role:** `{profile.target_role}`")
+    st.markdown(f"**Found {len(matches)} relevant positions for `{profile.target_role or 'Software Professional'}`:**")
 
-    # Render each job as an interactive card
+    # Scannable Job Cards
     for idx, match in enumerate(matches):
         job = match.job
         score_pct = int(match.similarity_score * 100)
 
+        if score_pct >= 75:
+            match_badge = f":green-badge[Strong match ({score_pct}%)]"
+        elif score_pct >= 50:
+            match_badge = f":blue-badge[Good match ({score_pct}%)]"
+        else:
+            match_badge = f":gray-badge[Potential match ({score_pct}%)]"
+
         with st.container(border=True):
-            header_col, score_col = st.columns([3, 1])
-            with header_col:
-                st.markdown(f"### {job.title}")
-                st.caption(f"🏢 **{job.company}** | 📍 {job.location} | ID: `{job.job_id}`")
-            with score_col:
-                st.metric("Semantic Similarity", f"{score_pct}%", help="Cosine similarity score calculated via dense vector embeddings.")
-                st.progress(match.similarity_score)
-
-            st.write(job.description[:280] + "..." if len(job.description) > 280 else job.description)
-
-            # Skills Pills
-            skill_col1, skill_col2 = st.columns(2)
-            with skill_col1:
-                st.markdown("**Matched Skills in Profile:**")
-                if match.matched_skills:
-                    pills = " ".join([f"`{s}`" for s in match.matched_skills])
-                    st.markdown(pills)
-                else:
-                    st.caption("No direct keyword match; conceptual alignment.")
-
-            with skill_col2:
-                st.markdown("**Missing Skills (Areas for Growth):**")
-                if match.missing_skills:
-                    pills = " ".join([f"`{s}`" for s in match.missing_skills[:6]])
-                    st.markdown(pills)
-                else:
-                    st.caption("All job skills found in profile!")
-
-            st.info(f"💡 **AI Match Insight**: {match.match_explanation}")
-
-            # Feedback and Target Action row
-            act_col1, act_col2, act_col3 = st.columns([2, 1, 1])
-            with act_col1:
-                if st.button(
-                    f"🎯 Select for CV Improvement Studio",
-                    key=f"target_job_{job.job_id}_{idx}",
-                    type="secondary",
-                    use_container_width=True,
-                ):
+            top_row_info, top_row_action = st.columns([3, 1])
+            with top_row_info:
+                st.markdown(f"#### {job.title}")
+                st.caption(f"{job.company} · {job.location}")
+                st.markdown(f"{match_badge} · *Based on semantic similarity with your confirmed profile.*")
+            with top_row_action:
+                if st.button("Improve resume →", key=f"target_job_{job.job_id}_{idx}", type="primary"):
                     st.session_state.selected_job_for_cv = job
+                    st.session_state.cv_suggestions = None  # Reset stale suggestions
                     AppStateManager.set_workflow_state(WorkflowState.JOB_MATCHED)
-                    st.session_state.active_tab = 4  # CV Improvement tab
-                    st.success(f"Selected '{job.title}' for CV Improvement! Navigating...")
+                    AppStateManager.set_active_view("Resume")
                     st.rerun()
 
-            with act_col2:
-                if st.button("👍 Relevant", key=f"rel_{job.job_id}_{idx}", use_container_width=True):
+            st.write(job.description[:260] + "..." if len(job.description) > 260 else job.description)
+
+            # Skill overlap
+            sk1, sk2 = st.columns(2)
+            with sk1:
+                st.caption("**Matched skills:**")
+                if match.matched_skills:
+                    st.markdown(" ".join([f"`{s}`" for s in match.matched_skills]))
+                else:
+                    st.caption("Conceptual alignment with candidate background.")
+            with sk2:
+                st.caption("**Areas for growth:**")
+                if match.missing_skills:
+                    st.markdown(" ".join([f"`{s}`" for s in match.missing_skills[:5]]))
+                else:
+                    st.caption("All core requirements met.")
+
+            # Why this matches
+            if match.match_explanation:
+                st.markdown(f"**Why this matches:** {match.match_explanation}")
+
+            # Feedback actions
+            f_col1, f_col2, f_col3 = st.columns([5, 1, 1])
+            with f_col2:
+                if st.button("Relevant", key=f"rel_{job.job_id}_{idx}"):
                     FeedbackManager.record_job_feedback(
                         job.job_id, job.title, "relevant", profile.target_role or "General"
                     )
-                    st.toast(f"Recorded feedback: Relevant for {job.title}")
-
-            with act_col3:
-                if st.button("👎 Irrelevant", key=f"irrel_{job.job_id}_{idx}", use_container_width=True):
+                    st.toast(f"Marked as relevant: {job.title}")
+            with f_col3:
+                if st.button("Not relevant", key=f"irrel_{job.job_id}_{idx}"):
                     FeedbackManager.record_job_feedback(
                         job.job_id, job.title, "irrelevant", profile.target_role or "General"
                     )
-                    st.toast(f"Recorded feedback: Irrelevant for {job.title}")
+                    st.toast(f"Marked as not relevant: {job.title}")
