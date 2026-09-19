@@ -5,13 +5,16 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+if not os.getenv("GEMINI_API_KEY"):
+    raise RuntimeError("GEMINI_API_KEY is missing. Add it to the project .env file.")
+
+client = genai.Client()
 
 def generate_story(prompt):
     """Generates a story based on the provided prompt."""
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model="gemini-2.5-flash",
             contents=prompt
         )
         return response.text

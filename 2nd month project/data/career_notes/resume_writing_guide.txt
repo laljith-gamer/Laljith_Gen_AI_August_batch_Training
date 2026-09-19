@@ -1,0 +1,19 @@
+# Modern Resume Writing & ATS Optimization Guide
+
+## Core Principles of High-Impact Tech Resumes
+
+### 1. The Google XYZ Formula for Bullet Points
+Structure every project and experience accomplishment bullet using:
+"Accomplished [X], as measured by [Y], by doing [Z]"
+- Example (Weak): "Worked on backend APIs using Python and FastAPI."
+- Example (Strong): "Designed and deployed 14 RESTful microservices in FastAPI and PostgreSQL, reducing endpoint response time by 35% across 2M daily API requests."
+
+### 2. Tailoring to Target Role
+- Place relevant technical skills in a prominent top section categorized into: Languages, Frameworks, Cloud/Databases, Tools.
+- Align bullet keywords directly with the responsibilities in the target job description.
+- Never list technologies you cannot explain deeply during an interview.
+
+### 3. Formatting & ATS Friendliness
+- Keep formatting clean, single-column, standard fonts, and avoid graphics, tables with nested columns, or icons that confuse ATS parsers.
+- Save and submit in standard PDF or DOCX format.
+- Ensure contact information includes full name, clean email, phone number, location, and GitHub or LinkedIn links.

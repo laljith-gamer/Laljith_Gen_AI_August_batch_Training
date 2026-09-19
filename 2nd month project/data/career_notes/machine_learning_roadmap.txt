@@ -1,0 +1,16 @@
+# Machine Learning & AI Engineer Career Roadmap
+
+## Core Responsibilities
+A Machine Learning Engineer bridges the gap between research models and production applications. Responsibilities include building training pipelines, fine-tuning foundation models, deploying inference endpoints, and monitoring model drift.
+
+## Primary Technical Skills
+1. Mathematics & Statistics: Linear algebra (eigenvalues, matrix decomposition), multivariate calculus (gradients, backpropagation), probability distributions, optimization algorithms (SGD, AdamW).
+2. Frameworks & Libraries: PyTorch, TensorFlow, Scikit-Learn, Hugging Face Transformers, NumPy, Pandas.
+3. Generative AI & LLM Systems: Prompt engineering, Retrieval-Augmented Generation (RAG), vector databases (FAISS, Chroma), tokenization, LangChain, semantic search.
+4. MLOps & Production: MLflow, Weights & Biases, Docker, FastAPI inference microservices, Triton Inference Server, ONNX runtime.
+5. Evaluation & Guardrails: BLEU, ROUGE, cosine similarity, hallucination detection, guardrails, semantic latency profiling.
+
+## Transition Pathway
+- Master classical supervised and unsupervised ML algorithms in Scikit-Learn before diving into deep learning.
+- Build a full RAG pipeline using FAISS, embeddings, and a modern LLM (e.g. Gemini 3.8 Flash), demonstrating grounded source citations.
+- Package inference into a Dockerized FastAPI service with rate limits and health check endpoints.

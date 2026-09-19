@@ -1,0 +1,17 @@
+# Cloud & DevOps Engineer Career Roadmap
+
+## Core Responsibilities
+Cloud and DevOps Engineers design, automate, maintain, and monitor secure, scalable cloud infrastructure and continuous delivery software delivery pipelines.
+
+## Primary Technical Skills
+1. Cloud Providers: Amazon Web Services (AWS - VPC, EC2, S3, IAM, ECS, Lambda), Microsoft Azure, or Google Cloud Platform (GCP).
+2. Infrastructure as Code (IaC): Terraform (modules, state management), AWS CloudFormation, Pulumi.
+3. Containerization & Orchestration: Docker (multi-stage builds), Kubernetes (Pods, Services, Deployments, Ingress, Helm charts).
+4. CI/CD Pipeline Engineering: GitHub Actions, GitLab CI, Jenkins, ArgoCD (GitOps workflows).
+5. Observability & Monitoring: Prometheus, Grafana, OpenTelemetry, ELK/OpenSearch, AWS CloudWatch.
+6. Scripting & Linux: Bash scripting, Python systems scripting, Linux kernel parameters, systemd, SSH.
+
+## Recommended Transition Steps
+- Earn a foundational associate certification (e.g., AWS Solutions Architect Associate) to validate broad architectural patterns.
+- Implement an automated Terraform configuration that provisions a resilient VPC and container cluster.
+- Build a GitHub Actions CI/CD workflow that tests code, builds Docker images, scans for vulnerabilities, and deploys.

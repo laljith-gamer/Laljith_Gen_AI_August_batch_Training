@@ -1,0 +1,32 @@
+Alex Rivera
+Senior Machine Learning & Generative AI Engineer
+alex.rivera@example.com | (415) 555-0192 | San Francisco, CA | linkedin.com/in/alex-rivera-demo
+
+PROFESSIONAL SUMMARY
+Senior Machine Learning Engineer with 5+ years of experience designing, deploying, and optimizing end-to-end AI applications, RAG pipelines, and scalable microservices. Proven track record in vector search with FAISS, foundation model orchestration, and production FastAPI services.
+
+TECHNICAL SKILLS
+- Languages: Python, SQL, C++, TypeScript
+- ML & GenAI: PyTorch, TensorFlow, Scikit-Learn, LangChain, FAISS, Transformers, RAG, Prompt Engineering
+- Cloud & Data: AWS, Docker, Kubernetes, PostgreSQL, Redis, Pandas, NumPy
+- Developer Tools: Git, Linux, CI/CD, FastAPI, Streamlit
+
+PROFESSIONAL EXPERIENCE
+Nexus AI Systems | Senior Generative AI Engineer | 2022 - Present
+- Architected enterprise Retrieval-Augmented Generation (RAG) pipeline leveraging FAISS vector search and Gemini models, reducing question answering hallucinations by 42%.
+- Deployed high-throughput FastAPI inference microservices processing over 1.5 million queries daily with sub-150ms p99 latency.
+- Containerized model inference pipelines using Docker and Kubernetes on AWS ECS, implementing autoscaling based on GPU utilization.
+
+Apex Analytics Corp | Machine Learning Engineer | 2019 - 2022
+- Developed customer churn and risk prediction models in Scikit-Learn and PyTorch, increasing predictive accuracy by 18%.
+- Optimized database queries and ETL pipelines in PostgreSQL and Pandas, accelerating weekly analytics training cycles by 3.5x.
+- Created interactive internal monitoring dashboards in Streamlit to visualize model drift and prediction confidence intervals.
+
+EDUCATION
+University of California, Berkeley
+Bachelor of Science in Computer Science | 2015 - 2019
+
+NOTABLE PROJECTS
+SmartHire RAG Career Engine
+- Built open-source career matching portal combining FAISS semantic vector search with Gemini structured parsing.
+- Implemented Human-in-the-Loop approval workflows and guardrail protection against prompt injection attacks.

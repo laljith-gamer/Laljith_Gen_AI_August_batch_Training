@@ -1,0 +1,18 @@
+# Data Analyst Career Roadmap & Skill Guide
+
+## Core Responsibilities
+A Data Analyst inspects, cleans, transforms, and models data to discover actionable business insights, construct executive dashboards, and support operational decision-making.
+
+## Primary Technical Skills
+1. Structured Query Language (SQL): Advanced querying, multi-table JOINs, Common Table Expressions (CTEs), window functions (ROW_NUMBER, RANK, LAG/LEAD), aggregation, and performance query tuning.
+2. Business Intelligence & Dashboarding: Power BI, Tableau, Looker. Designing star-schema data models, writing DAX measures (in Power BI) or calculated fields (in Tableau).
+3. Spreadsheet Modeling: Microsoft Excel (VLOOKUP, INDEX-MATCH, Pivot Tables, Power Query, scenario analysis).
+4. Python for Analytics: Pandas (data wrangling), NumPy (numerical calculations), Matplotlib and Seaborn (exploratory visualization).
+5. Statistical Foundations: Hypothesis testing, p-values, A/B testing, normal distribution, correlation vs causation, regression analysis.
+
+## Recommended Transition Pathway
+For candidates transitioning into Data Analytics from general programming, business operations, or QA:
+- Step 1: Master SQL by solving real business questions on sample schemas (retail, finance, healthcare).
+- Step 2: Build 2-3 portfolio dashboard projects in Tableau or Power BI demonstrating storytelling with data.
+- Step 3: Learn basic Python data manipulation with Pandas to automate repetitive reporting workflows.
+- Step 4: Add clear business impact metrics to resume bullets (e.g. "Identified churn patterns leading to 12% retention improvement").

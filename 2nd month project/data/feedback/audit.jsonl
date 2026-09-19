@@ -1,0 +1,8 @@
+{"timestamp": "2026-09-18T16:51:47.560521", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
+{"timestamp": "2026-09-18T17:05:03.517610", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
+{"timestamp": "2026-09-18T17:06:17.645540", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-18T17:26:56.075677", "event_type": "RESUME_PARSED", "actor": "AI", "status": "SUCCESS", "details": {"filename": "Resume.pdf"}}
+{"timestamp": "2026-09-19T07:39:28.088556", "event_type": "RESUME_PARSED", "actor": "AI", "status": "SUCCESS", "details": {"filename": "resume.docx"}}
+{"timestamp": "2026-09-19T07:44:41.174611", "event_type": "MENTOR_QUERY_ANSWERED", "actor": "AI", "status": "SUCCESS", "details": {"question": "What skills and tools are required for a Data Analyst role?", "is_grounded": true, "refusal": false, "citations_count": 4}}
+{"timestamp": "2026-09-19T07:46:17.108826", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-19T07:46:18.847413", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}

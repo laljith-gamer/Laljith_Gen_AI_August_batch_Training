@@ -1,0 +1,16 @@
+# Cybersecurity Career Roadmap & SOC Analyst Guide
+
+## Core Responsibilities
+Cybersecurity Analysts and Engineers protect organizations against digital threats, monitor security posture, triage alerts, investigate compromises, and enforce security policies.
+
+## Primary Technical Skills
+1. Networking Foundations: OSI Model, TCP/IP, DNS, DHCP, subnetting, firewalls, VPNs, routing, and packet inspection using Wireshark.
+2. Security Operations & SIEM: Splunk, Microsoft Sentinel, Elastic SIEM, alert triage, log correlation, query languages (SPL, KQL).
+3. Incident Response & Threat Hunting: MITRE ATT&CK framework, Cyber Kill Chain, digital forensics, root-cause analysis, malware containment.
+4. Vulnerability Management & Assessment: Nmap, Nessus, Burp Suite, CVE vulnerability tracking.
+5. Operating Systems Security: Windows Event Logs, Sysmon, Linux auditd, Active Directory security policies, hardening baselines.
+6. Automation & Scripting: Python and Bash for automating alert enrichment, IP reputation lookups, and log parsing.
+
+## Practical Advice for Beginners
+- Build a home security lab using virtual machines (e.g. pfSense router, Kali Linux, Windows Server, Splunk forwarder).
+- Practice realistic capture-the-flag (CTF) and SOC analysis scenarios on platforms like TryHackMe and Blue Team Labs.

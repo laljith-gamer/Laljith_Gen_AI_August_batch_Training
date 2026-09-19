@@ -1,0 +1,21 @@
+# Technical Interview Preparation Guide
+
+## Structured Frameworks for Success
+
+### 1. The STAR Method for Behavioral Interviews
+When answering behavioral questions ("Tell me about a time you resolved a conflict" or "Describe a challenging project"):
+- Situation: Set the scene, context, and project scope concisely (15-20% of answer).
+- Task: Define your specific responsibility and the core challenge faced (10-15%).
+- Action: Explain what YOU did, why you made those technical choices, and how you collaborated (50%).
+- Result: Quantify the outcome (e.g. "Reduced API latency by 40%", "Shipped 2 weeks ahead of schedule") and key lessons learned (20%).
+
+### 2. System Design Interview Framework
+1. Requirements Clarification: Functional requirements (APIs, user flows) and non-functional requirements (traffic volume, latency SLOs, durability, CAP theorem tradeoffs).
+2. High-Level Architecture: Core components (Clients -> Load Balancer -> API Gateway -> App Servers -> Databases / Caches / Queues).
+3. Deep Dives: Database schema design, partitioning/sharding strategies, cache invalidation policies, fault tolerance.
+4. Bottleneck Identification: Single points of failure, network bandwidth limits, replication lag.
+
+### 3. Coding Interview Best Practices
+- Clarify edge cases (null inputs, empty arrays, integer overflows) before writing code.
+- State your brute-force approach first, analyze its Big-O time and space complexity, then propose optimal data structures.
+- Write clean, modular, idiomatic code with descriptive variable names.

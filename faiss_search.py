@@ -1,17 +1,16 @@
-# !pip install -q -U google-genai faiss-cpu
-
 import numpy as np
 import faiss
-
 from google import genai
 from google.genai import types
 import os
+from dotenv import load_dotenv
 
+# Load GEMINI_API_KEY from the project .env file for local execution.
+load_dotenv()
+if not os.getenv("GEMINI_API_KEY"):
+    raise RuntimeError("GEMINI_API_KEY is missing. Add it to the project .env file.")
 
-# Connect to Gemini
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEYS")
-)
+client = genai.Client()
 
 MODEL = "gemini-embedding-001"
 

@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-09-18T17:02:21.607003",
+  "retrieval_evaluation": {
+    "total_queries": 5,
+    "hits": 5,
+    "hit_rate": 1.0,
+    "details": [
+      {
+        "target_role": "Data Analyst",
+        "retrieved_titles": [
+          "Data Analyst",
+          "Analytics Engineer",
+          "Business Intelligence Specialist"
+        ],
+        "hit": true
+      },
+      {
+        "target_role": "Machine Learning Engineer",
+        "retrieved_titles": [
+          "Machine Learning Engineer",
+          "Analytics Engineer",
+          "NLP Engineer"
+        ],
+        "hit": true
+      },
+      {
+        "target_role": "Senior Backend Developer",
+        "retrieved_titles": [
+          "Senior Backend Developer",
+          "Senior Generative AI Engineer",
+          "Full Stack Software Engineer"
+        ],
+        "hit": true
+      },
+      {
+        "target_role": "Cybersecurity Analyst",
+        "retrieved_titles": [
+          "Cybersecurity Incident Analyst",
+          "Site Reliability Engineer (SRE)",
+          "Cloud DevOps & Platform Engineer"
+        ],
+        "hit": true
+      },
+      {
+        "target_role": "Analytics Engineer",
+        "retrieved_titles": [
+          "Analytics Engineer",
+          "Data Platform Engineer",
+          "Machine Learning Engineer"
+        ],
+        "hit": true
+      }
+    ]
+  },
+  "hallucination_evaluation": {
+    "total_unsupported_questions": 3,
+    "refusal_count": 3,
+    "refusal_rate": 1.0,
+    "details": [
+      {
+        "question": "What is the exact 2029 dental health insurance premium at Acme Widgets?",
+        "answer": "I don't know based on the available documents.",
+        "refused": true
+      },
+      {
+        "question": "Who was appointed VP of Engineering at Wayne Enterprises yesterday?",
+        "answer": "I don't know based on the available documents.",
+        "refused": true
+      },
+      {
+        "question": "What is the cafeteria lunch schedule at Stark Industries?",
+        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
+        "refused": true
+      }
+    ]
+  },
+  "prompt_comparison": {
+    "test_query": "How should I structure bullet points on my resume?",
+    "naive_prompt_characteristic": "Generic advice without document traceability, prone to fabricating metrics.",
+    "grounded_prompt_characteristic": "Restricted strictly to the XYZ formula from resume_writing_guide.txt with traceable citations.",
+    "grounded_answer_snippet": "Based on the SmartHire knowledge base:\n\n## Core Principles of High-Impact Tech Resumes\n\n### 1. The Google XYZ Formula for Bullet Points\nStructure every project and experience accomplishment bullet using:\n\"Accomplished [X], as measured by [Y\n\nTo pursu...",
+    "citations_present": true,
+    "citation_sources": [
+      "Resume Writing Guide",
+      "Data Analyst Roadmap",
+      "Resume Writing Guide",
+      "Resume Writing Guide"
+    ]
+  },
+  "hitl_feedback_metrics": {
+    "total_job_feedback": 1,
+    "job_relevant_count": 1,
+    "job_irrelevant_count": 0,
+    "job_relevance_rate": 1.0,
+    "total_mentor_feedback": 1,
+    "mentor_helpful_count": 1,
+    "mentor_unhelpful_count": 0,
+    "mentor_helpfulness_rate": 1.0,
+    "total_cv_actions": 0,
+    "cv_accepted": 0,
+    "cv_edited": 0,
+    "cv_rejected": 0
+  }
+}

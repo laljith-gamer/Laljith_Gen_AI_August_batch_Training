@@ -1,0 +1,89 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2331 >>
+stream
+BT
+/F1 10 Tf
+54 750 Td
+13 TL
+(Alex Rivera) Tj
+T*
+(Senior Machine Learning & Generative AI Engineer) Tj
+T*
+(alex.rivera@example.com | \(415\) 555-0192 | San Francisco, CA | linkedin.com/in/alex-rivera-demo) Tj
+T*
+(PROFESSIONAL SUMMARY) Tj
+T*
+(Senior Machine Learning Engineer with 5+ years of experience designing, deploying, and optimizing end-to-end AI applications, RAG pipelines, and scalable microservices. Proven track record in vector search with FAISS, foundation model orchestration, and production FastAPI services.) Tj
+T*
+(TECHNICAL SKILLS) Tj
+T*
+(- Languages: Python, SQL, C++, TypeScript) Tj
+T*
+(- ML & GenAI: PyTorch, TensorFlow, Scikit-Learn, LangChain, FAISS, Transformers, RAG, Prompt Engineering) Tj
+T*
+(- Cloud & Data: AWS, Docker, Kubernetes, PostgreSQL, Redis, Pandas, NumPy) Tj
+T*
+(- Developer Tools: Git, Linux, CI/CD, FastAPI, Streamlit) Tj
+T*
+(PROFESSIONAL EXPERIENCE) Tj
+T*
+(Nexus AI Systems | Senior Generative AI Engineer | 2022 - Present) Tj
+T*
+(- Architected enterprise Retrieval-Augmented Generation \(RAG\) pipeline leveraging FAISS vector search and Gemini models, reducing question answering hallucinations by 42%.) Tj
+T*
+(- Deployed high-throughput FastAPI inference microservices processing over 1.5 million queries daily with sub-150ms p99 latency.) Tj
+T*
+(- Containerized model inference pipelines using Docker and Kubernetes on AWS ECS, implementing autoscaling based on GPU utilization.) Tj
+T*
+(Apex Analytics Corp | Machine Learning Engineer | 2019 - 2022) Tj
+T*
+(- Developed customer churn and risk prediction models in Scikit-Learn and PyTorch, increasing predictive accuracy by 18%.) Tj
+T*
+(- Optimized database queries and ETL pipelines in PostgreSQL and Pandas, accelerating weekly analytics training cycles by 3.5x.) Tj
+T*
+(- Created interactive internal monitoring dashboards in Streamlit to visualize model drift and prediction confidence intervals.) Tj
+T*
+(EDUCATION) Tj
+T*
+(University of California, Berkeley) Tj
+T*
+(Bachelor of Science in Computer Science | 2015 - 2019) Tj
+T*
+(NOTABLE PROJECTS) Tj
+T*
+(SmartHire RAG Career Engine) Tj
+T*
+(- Built open-source career matching portal combining FAISS semantic vector search with Gemini structured parsing.) Tj
+T*
+(- Implemented Human-in-the-Loop approval workflows and guardrail protection against prompt injection attacks.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000317 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2700
+%%EOF
