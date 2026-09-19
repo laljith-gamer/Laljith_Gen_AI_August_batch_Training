@@ -147,14 +147,14 @@ class MentorRAGChain:
 
         # Lexical keyword verification: if significant question terms don't appear in context, refuse
         q_words = [w.lower() for w in re.findall(r"\b[a-zA-Z]{4,}\b", question)]
-        # Filter out common question stop words
-        stop_words = {"what", "when", "where", "which", "could", "would", "should", "exact", "available", "information", "tell"}
+        stop_words = {"what", "when", "where", "which", "could", "would", "should", "exact", "available", "information", "tell", "from", "into", "with", "about"}
         key_q_words = [w for w in q_words if w not in stop_words]
         
         lower_context = context_text.lower()
-        has_overlap = any(kw in lower_context for kw in key_q_words)
+        overlap_count = sum(1 for kw in key_q_words if re.search(r"\b" + re.escape(kw), lower_context))
+        min_required = max(2, int(len(key_q_words) * 0.4)) if len(key_q_words) >= 2 else 1
 
-        if key_q_words and not has_overlap:
+        if key_q_words and overlap_count < min_required:
             return MentorResponse(
                 question=question,
                 answer="I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",

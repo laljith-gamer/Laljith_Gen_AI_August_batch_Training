@@ -21,6 +21,8 @@ class FaissVectorStore:
         self.metadata: List[Dict[str, Any]] = []
         self.index_file = self.index_dir / "index.faiss"
         self.meta_file = self.index_dir / "metadata.pkl"
+        if self.exists():
+            self.load()
 
     def exists(self) -> bool:
         """Check if an index already exists on disk."""
