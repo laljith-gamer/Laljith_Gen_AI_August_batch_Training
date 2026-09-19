@@ -16,10 +16,10 @@ PARENT_ENV = Path(r"C:\Users\ASUS\Desktop\personal\genai-inter\.env")
 if PARENT_ENV.exists():
     load_dotenv(dotenv_path=PARENT_ENV, override=True)
 
-# Also check relative parent and local project .env
+# Also check relative parent and local project .env (local project overrides)
 for candidate in [PARENT_ROOT / ".env", PROJECT_ROOT / ".env"]:
-    if candidate.exists() and candidate != PARENT_ENV:
-        load_dotenv(dotenv_path=candidate)
+    if candidate.exists():
+        load_dotenv(dotenv_path=candidate, override=True)
 
 class Settings:
     """Application configuration settings."""
