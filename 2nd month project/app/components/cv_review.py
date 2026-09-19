@@ -64,8 +64,11 @@ def render_cv_review():
     )
 
     if chosen_label and job_options:
-        selected_job = job_options[chosen_label]
-        st.session_state.selected_job_for_cv = selected_job
+        new_job = job_options[chosen_label]
+        if selected_job is None or new_job.job_id != getattr(selected_job, "job_id", None):
+            selected_job = new_job
+            st.session_state.selected_job_for_cv = new_job
+            st.session_state.cv_suggestions = None
 
     if not selected_job:
         st.info("Please select a target job posting to proceed.")

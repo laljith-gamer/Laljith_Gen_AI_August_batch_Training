@@ -79,8 +79,9 @@ def build_mentor_index(force: bool = False):
     # Extract text strings and metadata mappings
     texts = [c["text"] for c in all_chunks]
     meta_list = [c["metadata"] for c in all_chunks]
-    # Also attach snippet into metadata for citation display
+    # Also attach full text and snippet into metadata for RAG context and citation display
     for i, meta in enumerate(meta_list):
+        meta["text"] = texts[i]
         meta["snippet"] = texts[i][:200]
 
     logger.info(f"Generating embeddings for {len(texts)} chunks...")
