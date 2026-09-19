@@ -280,6 +280,53 @@ Open your browser at `http://localhost:8501`.
 
 ---
 
+## 📦 External Dataset Acquisition
+
+SmartHire keeps downloaded third-party datasets under `data/raw/kaggle/` so raw source data stays separate from the application's normalized/demo data.
+
+### Kaggle sources
+
+| Dataset | Kaggle source | Local destination | Use |
+|---|---|---|---|
+| Resume Dataset | `snehaanbhawal/resume-dataset` | `data/raw/kaggle/resumes/` | Resume exploration and dynamic structured extraction |
+| Jobs on Naukri.com | `PromptCloudHQ/jobs-on-naukricom` | `data/raw/kaggle/jobs/` | Job-corpus experiments and normalization |
+| LinkedIn Job Postings (2023–2024) | `arshkon/linkedin-job-postings` | `data/raw/kaggle/linkedin/` | Optional larger job-corpus experiments |
+
+The resume dataset contains 2,400+ resumes and a CSV with `ID`, `Resume_str`, `Resume_html`, and `Category`. The Naukri dataset is the 22,000-listing sample containing fields such as company, job title, location, skills, and job description. The LinkedIn dataset is much larger (124,000+ postings in the current Kaggle snapshot), so it is optional for local experiments rather than a default application dependency.
+
+### Download
+
+Install/authenticate the official Kaggle CLI, then run from `2nd month project/`:
+
+```bash
+python -m pip install -U kaggle
+kaggle auth login
+```
+
+Download the datasets needed by SmartHire:
+
+```bash
+python scripts/download_kaggle_datasets.py --dataset resume,naukri
+```
+
+Download the larger LinkedIn corpus separately:
+
+```bash
+python scripts/download_kaggle_datasets.py --dataset linkedin
+```
+
+Or download all three:
+
+```bash
+python scripts/download_kaggle_datasets.py --dataset all
+```
+
+Raw Kaggle files are intentionally not copied over `data/jobs/jobs.csv` automatically. The existing `data/jobs/jobs.csv` is a 20-role application-ready corpus with the schema expected by `scripts/build_job_index.py`. A future import/normalization step should transform a raw Kaggle job source before rebuilding FAISS.
+
+For source details and storage notes, see `data/raw/kaggle/README.md`.
+
+---
+
 ## 🧪 Automated Testing & Evaluation
 
 ### Run Full Test Suite (24 Tests)
