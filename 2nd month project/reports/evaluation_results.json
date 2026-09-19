@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-19T12:04:38.966792",
+  "timestamp": "2026-09-19T12:30:14.386390",
   "retrieval_evaluation": {
     "total_queries": 5,
     "hits": 5,
@@ -59,12 +59,12 @@
     "details": [
       {
         "question": "What is the exact 2029 dental health insurance premium at Acme Widgets?",
-        "answer": "I don't know based on the available documents.",
+        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
         "refused": true
       },
       {
         "question": "Who was appointed VP of Engineering at Wayne Enterprises yesterday?",
-        "answer": "I don't know based on the available documents.",
+        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
         "refused": true
       },
       {
@@ -88,16 +88,16 @@
     ]
   },
   "hitl_feedback_metrics": {
-    "total_job_feedback": 16,
-    "job_relevant_count": 16,
+    "total_job_feedback": 22,
+    "job_relevant_count": 22,
     "job_irrelevant_count": 0,
     "job_relevance_rate": 1.0,
-    "total_mentor_feedback": 17,
-    "mentor_helpful_count": 17,
+    "total_mentor_feedback": 23,
+    "mentor_helpful_count": 23,
     "mentor_unhelpful_count": 0,
     "mentor_helpfulness_rate": 1.0,
-    "total_cv_actions": 7,
-    "cv_accepted": 7,
+    "total_cv_actions": 10,
+    "cv_accepted": 10,
     "cv_edited": 0,
     "cv_rejected": 0
   }

@@ -28,3 +28,9 @@
 {"timestamp": "2026-09-19T11:57:16.845250", "event_type": "RESUME_PARSED", "actor": "AI", "status": "SUCCESS", "details": {"filename": "resume.docx"}}
 {"timestamp": "2026-09-19T11:57:24.822825", "event_type": "PROFILE_APPROVED", "actor": "USER", "status": "APPROVED", "details": {"role": "AI/ML Engineer"}}
 {"timestamp": "2026-09-19T11:57:52.256787", "event_type": "JOB_SEARCH_EXECUTED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"target_role": "AI/ML Engineer", "top_k": 5, "results_count": 5}}
+{"timestamp": "2026-09-19T12:19:48.134438", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-19T12:19:49.794086", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
+{"timestamp": "2026-09-19T12:21:40.928805", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-19T12:21:42.897601", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
+{"timestamp": "2026-09-19T12:29:43.229760", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-19T12:29:44.982054", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
