@@ -178,3 +178,9 @@ class MentorRAGChain:
             is_grounded=True,
             refusal=False,
         )
+
+
+# Notebook compatibility alias
+CareerMentorRAG = MentorRAGChain
+
+__all__ = ["MentorRAGChain", "CareerMentorRAG"]

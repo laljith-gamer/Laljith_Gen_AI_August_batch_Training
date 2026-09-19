@@ -25,6 +25,11 @@ class JobSearchEngine:
         self.embed_manager = embed_manager or EmbeddingManager()
         self.vector_store = vector_store or FaissVectorStore(settings.JOB_INDEX_DIR)
 
+    @property
+    def index(self):
+        """Access underlying FAISS index."""
+        return self.vector_store.index if self.vector_store else None
+
     @staticmethod
     def build_profile_search_text(profile: ResumeProfile) -> str:
         """
@@ -154,3 +159,25 @@ class JobSearchEngine:
                 break
 
         return job_matches
+
+    def search_by_text(
+        self,
+        text: str,
+        top_k: Optional[int] = None,
+        min_similarity: Optional[float] = None,
+    ) -> List[JobMatchResult]:
+        """Convenience method to search jobs directly by raw text query."""
+        mock_profile = ResumeProfile(
+            candidate_name="Query",
+            target_role=text,
+            skills=[s.strip() for s in re.findall(r"\b[A-Za-z0-9#+]+\b", text)],
+            summary=text,
+            experience=[],
+            education=[],
+            projects=[],
+        )
+        return self.search_matching_jobs(
+            candidate_profile=mock_profile,
+            top_k=top_k,
+            min_similarity=min_similarity if min_similarity is not None else 0.0,
+        )

@@ -167,3 +167,9 @@ class EmbeddingManager:
                 output_vectors.append(np.array(row[:target_dim], dtype=np.float32))
 
         return output_vectors
+
+
+# Notebook compatibility alias
+EmbeddingEngine = EmbeddingManager
+
+__all__ = ["EmbeddingManager", "EmbeddingEngine"]
