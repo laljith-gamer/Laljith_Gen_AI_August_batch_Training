@@ -222,7 +222,7 @@ smarthire-genai/
 ## ⚡ Quick Start & Installation
 
 ### 1. Prerequisites
-- Python 3.10, 3.11, or 3.12
+- Python 3.11 or 3.12
 - Google Gemini API Key ([Get one free from Google AI Studio](https://aistudio.google.com/))
 
 ### 2. Environment Setup
