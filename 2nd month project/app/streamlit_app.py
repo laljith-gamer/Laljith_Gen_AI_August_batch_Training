@@ -269,6 +269,12 @@ if active_view == "Overview":
                         AuditLogger.log_event("DEMO_RESUME_LOADED", "USER", "SUCCESS", {"format": "docx"})
                         st.rerun()
 
+        st.markdown("---")
+        st.caption("Or explore real-world resumes across 24 industries from the Kaggle dataset:")
+        if st.button("Browse 2,480+ Kaggle Resumes & Generate Dynamic JSON →"):
+            AppStateManager.set_active_view("Profile")
+            st.rerun()
+
 # -------------------------------------------------------------
 # VIEW 2: PROFILE REVIEW (HITL CHECKPOINT)
 # -------------------------------------------------------------

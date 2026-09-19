@@ -6,12 +6,15 @@ Provides professional inspection, structured editing, diff tracking, and explici
 from typing import Optional, List
 import streamlit as st
 
+import json
 from src.models.enums import ReviewStatus, WorkflowState
 from src.models.schemas import ResumeProfile, HumanApprovedProfile
 from src.human_loop.review import ProfileReviewManager
 from src.human_loop.audit import AuditLogger
 from src.parsing.loader import load_document
 from src.parsing.resume_parser import parse_resume
+from src.data.resume_dataset import ResumeDatasetManager
+from src.parsing.dynamic_json import DynamicJSONGenerator, DynamicResumeJSON
 from app.state import AppStateManager
 
 def render_profile_review():
@@ -23,40 +26,119 @@ def render_profile_review():
     if container is None:
         st.subheader("Add your resume")
         st.markdown(
-            "Upload a PDF or DOCX file to build your career profile. "
-            "Our system extracts your verified background for your review."
+            "Upload a document or explore the 2,480+ Kaggle resume dataset to build your career profile. "
+            "Our system dynamically extracts verified backgrounds and required fields for your review."
         )
 
-        with st.container(border=True):
-            uploaded_file = st.file_uploader(
-                "Choose your resume file",
-                type=["pdf", "docx"],
-                help="Supported formats: PDF, DOCX (maximum size: 10 MB)",
-                label_visibility="collapsed",
-            )
-            st.caption("Supported formats: PDF or DOCX · Maximum file size: 10 MB")
+        source_mode = st.segmented_control(
+            "Resume Source",
+            options=["Upload document (PDF / DOCX)", "Explore Kaggle dataset (2,480+ resumes)"],
+            default="Upload document (PDF / DOCX)",
+            label_visibility="collapsed",
+        )
 
-            if uploaded_file is not None:
-                st.markdown(f"**Selected file:** `{uploaded_file.name}` ({uploaded_file.size / 1024:.1f} KB)")
-                if st.button("Analyze resume", type="primary"):
-                    with st.spinner("Analyzing your resume..."):
-                        try:
-                            file_bytes = uploaded_file.read()
-                            doc_info = load_document(file_bytes, filename=uploaded_file.name)
-                            st.session_state.uploaded_file_name = uploaded_file.name
-                            st.session_state.extracted_resume_text = doc_info["text"]
+        if source_mode == "Upload document (PDF / DOCX)":
+            with st.container(border=True):
+                uploaded_file = st.file_uploader(
+                    "Choose your resume file",
+                    type=["pdf", "docx"],
+                    help="Supported formats: PDF, DOCX (maximum size: 10 MB)",
+                    label_visibility="collapsed",
+                )
+                st.caption("Supported formats: PDF or DOCX · Maximum file size: 10 MB")
 
-                            profile = parse_resume(doc_info["text"], api_key=AppStateManager.get_api_key())
-                            new_container = ProfileReviewManager.initialize_review(profile)
-                            st.session_state.human_profile_container = new_container
-                            AppStateManager.set_workflow_state(WorkflowState.PROFILE_REVIEW)
-                            AppStateManager.invalidate_downstream()
-                            AuditLogger.log_event("RESUME_PARSED", "AI", "SUCCESS", {"filename": uploaded_file.name})
-                            st.success("Resume analyzed. Please review your profile below.")
-                            st.rerun()
-                        except Exception as ex:
-                            st.error("We couldn't analyze the resume right now. Please check the file and try again.")
-                            AuditLogger.log_event("RESUME_PARSE_FAILED", "AI", "ERROR", {"error": str(ex)})
+                if uploaded_file is not None:
+                    st.markdown(f"**Selected file:** `{uploaded_file.name}` ({uploaded_file.size / 1024:.1f} KB)")
+                    if st.button("Analyze resume", type="primary"):
+                        with st.spinner("Analyzing your resume..."):
+                            try:
+                                file_bytes = uploaded_file.read()
+                                doc_info = load_document(file_bytes, filename=uploaded_file.name)
+                                st.session_state.uploaded_file_name = uploaded_file.name
+                                st.session_state.extracted_resume_text = doc_info["text"]
+
+                                profile = parse_resume(doc_info["text"], api_key=AppStateManager.get_api_key())
+                                new_container = ProfileReviewManager.initialize_review(profile)
+                                st.session_state.human_profile_container = new_container
+                                AppStateManager.set_workflow_state(WorkflowState.PROFILE_REVIEW)
+                                AppStateManager.invalidate_downstream()
+                                AuditLogger.log_event("RESUME_PARSED", "AI", "SUCCESS", {"filename": uploaded_file.name})
+                                st.success("Resume analyzed. Please review your profile below.")
+                                st.rerun()
+                            except Exception as ex:
+                                st.error("We couldn't analyze the resume right now. Please check the file and try again.")
+                                AuditLogger.log_event("RESUME_PARSE_FAILED", "AI", "ERROR", {"error": str(ex)})
+
+        else:
+            with st.container(border=True):
+                if not ResumeDatasetManager.is_available():
+                    st.warning("Resume.csv dataset was not found in the project directory.")
+                else:
+                    categories = ResumeDatasetManager.get_categories()
+                    cat_counts = ResumeDatasetManager.get_category_counts()
+
+                    c_col1, c_col2 = st.columns([1, 1])
+                    with c_col1:
+                        cat_options = [f"{c} ({cat_counts.get(c, 0)})" for c in categories]
+                        selected_cat_str = st.selectbox(
+                            "Industry Category",
+                            options=cat_options,
+                            index=0,
+                        )
+                        selected_category = selected_cat_str.split(" (")[0] if selected_cat_str else categories[0]
+
+                    resumes = ResumeDatasetManager.get_resumes_by_category(selected_category, limit=30)
+                    with c_col2:
+                        resume_display_map = {
+                            f"ID {r['id']} — {r['headline']}": r['id']
+                            for r in resumes
+                        }
+                        selected_display = st.selectbox(
+                            "Candidate Resume",
+                            options=list(resume_display_map.keys()),
+                            index=0 if resume_display_map else None,
+                        )
+                        selected_id = resume_display_map.get(selected_display) if selected_display else None
+
+                    if selected_id:
+                        selected_resume = ResumeDatasetManager.get_resume(selected_id)
+                        if selected_resume:
+                            st.caption(f"**Preview ({selected_resume['category']} · {len(selected_resume['raw_text'])} characters):**")
+                            st.text_area(
+                                "Raw Resume Snippet",
+                                value=selected_resume["cleaned_text"][:350] + "...",
+                                height=90,
+                                disabled=True,
+                                label_visibility="collapsed",
+                            )
+
+                            if st.button("⚡ Generate Dynamic JSON & Load Profile", type="primary"):
+                                with st.spinner(f"Dynamically generating validated JSON profile for {selected_id}..."):
+                                    try:
+                                        dyn_json = DynamicJSONGenerator.generate(
+                                            resume_id=selected_id,
+                                            raw_text=selected_resume["raw_text"],
+                                            category=selected_resume["category"],
+                                            api_key=AppStateManager.get_api_key(),
+                                        )
+                                        st.session_state.dynamic_resume_json = dyn_json
+                                        st.session_state.uploaded_file_name = f"kaggle_{selected_category}_{selected_id}.json"
+                                        st.session_state.extracted_resume_text = selected_resume["cleaned_text"]
+
+                                        profile = dyn_json.to_resume_profile()
+                                        new_container = ProfileReviewManager.initialize_review(profile)
+                                        st.session_state.human_profile_container = new_container
+                                        AppStateManager.set_workflow_state(WorkflowState.PROFILE_REVIEW)
+                                        AppStateManager.invalidate_downstream()
+                                        AuditLogger.log_event("KAGGLE_RESUME_DYNAMIC_JSON_GENERATED", "AI", "SUCCESS", {
+                                            "resume_id": selected_id,
+                                            "category": selected_category,
+                                            "target_role": dyn_json.target_role,
+                                        })
+                                        st.success(f"Generated validated JSON profile for {dyn_json.target_role}.")
+                                        st.rerun()
+                                    except Exception as ex:
+                                        st.error(f"Failed to generate dynamic JSON: {ex}")
         return
 
     orig = container.original_ai_profile
@@ -115,10 +197,23 @@ def render_profile_review():
                 AppStateManager.invalidate_downstream(full_reset=True)
                 st.rerun()
 
-        # Collapsed Technical details
-        with st.expander("Technical details & audit trace"):
-            st.caption("Original AI extraction before human review:")
-            st.json(orig.model_dump(mode="json"))
+        # Collapsed Technical details & JSON Export
+        with st.expander("Structured JSON & export"):
+            st.caption("Validated candidate JSON profile with required fields:")
+            if st.session_state.get("dynamic_resume_json"):
+                json_data = json.loads(st.session_state.dynamic_resume_json.to_json_str())
+            else:
+                json_data = curr.model_dump(mode="json")
+            st.json(json_data)
+
+            dl_base = st.session_state.get("uploaded_file_name", "profile").replace(".docx", "").replace(".pdf", "")
+            st.download_button(
+                "📥 Download Profile JSON",
+                data=json.dumps(json_data, indent=2),
+                file_name=f"{dl_base}.json",
+                mime="application/json",
+                help="Download this profile as a validated JSON file.",
+            )
             if container.change_summary:
                 st.caption(f"Change summary: {container.change_summary}")
         return
@@ -255,7 +350,20 @@ def render_profile_review():
             AppStateManager.invalidate_downstream(full_reset=True)
             st.rerun()
 
-    # Technical Details
-    with st.expander("Technical details"):
-        st.caption("Raw extracted JSON:")
-        st.json(orig.model_dump(mode="json"))
+    # Structured JSON & Export
+    with st.expander("Structured JSON & export"):
+        st.caption("Validated candidate JSON profile with required fields:")
+        if st.session_state.get("dynamic_resume_json"):
+            json_data = json.loads(st.session_state.dynamic_resume_json.to_json_str())
+        else:
+            json_data = orig.model_dump(mode="json")
+        st.json(json_data)
+
+        dl_base = st.session_state.get("uploaded_file_name", "profile").replace(".docx", "").replace(".pdf", "")
+        st.download_button(
+            "📥 Download Profile JSON",
+            data=json.dumps(json_data, indent=2),
+            file_name=f"{dl_base}.json",
+            mime="application/json",
+            help="Download this profile as a validated JSON file.",
+        )
