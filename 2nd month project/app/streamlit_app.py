@@ -38,49 +38,12 @@ st.set_page_config(
 # Initialize Session State
 AppStateManager.initialize_state()
 
-# Cohesive SaaS Design Tokens
-st.markdown("""
-<style>
-    /* Clean typography and surface styles */
-    .stApp {
-        background-color: #FAFAFB;
-    }
-    .brand-title {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0F172A;
-        letter-spacing: -0.02em;
-        margin-bottom: 0.1rem;
-    }
-    .brand-caption {
-        font-size: 0.9rem;
-        color: #64748B;
-        margin-bottom: 1.2rem;
-    }
-    .status-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 16px 20px;
-        margin-bottom: 16px;
-    }
-    .status-badge {
-        display: inline-block;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-bottom: 8px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # -------------------------------------------------------------
 # SIDEBAR NAVIGATION
 # -------------------------------------------------------------
 with st.sidebar:
-    st.markdown('<div class="brand-title">SmartHire</div>', unsafe_allow_html=True)
-    st.markdown('<div class="brand-caption">Career intelligence workspace</div>', unsafe_allow_html=True)
+    st.markdown("### SmartHire")
+    st.caption("Career intelligence workspace")
 
     # Primary Career Workflow Navigation
     main_nav_options = [
@@ -146,6 +109,9 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
+    active_theme = getattr(st.context.theme, "type", None) or "system default"
+    theme_icon = "🌙" if active_theme == "dark" else "☀️"
+    st.caption(f"{theme_icon} Theme: {active_theme.capitalize()} · Switch via Settings (⋮)")
     st.caption("SmartHire v1.0 · Grounded Career Intelligence")
 
 # -------------------------------------------------------------
@@ -470,3 +436,19 @@ elif active_view == "Settings & Demo":
         st.markdown(f"• **Fallback LLM:** `{settings.GEMINI_FALLBACK_MODEL}`")
         st.markdown(f"• **Embedding Model:** `{settings.GEMINI_EMBEDDING_MODEL}` (Dimension: `{settings.EMBEDDING_DIMENSION}`)")
         st.markdown(f"• **Job Search Threshold:** `{settings.SIMILARITY_THRESHOLD}` (Top-K: `{settings.TOP_K_JOBS}`)")
+
+    with st.container(border=True):
+        st.markdown("#### Appearance & Theme")
+        active_theme = getattr(st.context.theme, "type", None) or "system default"
+        theme_icon = "🌙" if active_theme == "dark" else "☀️"
+        st.markdown(f"• **Current active theme:** {theme_icon} `{active_theme.capitalize()}`")
+        st.markdown(
+            "SmartHire comes with dedicated, WCAG-compliant **Light** and **Dark** themes "
+            "designed specifically for career intelligence workspaces."
+        )
+        st.info(
+            "💡 **To switch between Light and Dark mode:**\n\n"
+            "1. Click the menu icon (**⋮**) in the top-right corner of the window.\n"
+            "2. Select **Settings**.\n"
+            "3. Under **Theme**, choose **Light**, **Dark**, or **Use system setting** (matches your device theme automatically)."
+        )

@@ -19,3 +19,5 @@
 {"timestamp": "2026-09-19T08:30:18.012979", "event_type": "USER_RESUME_LOADED", "actor": "USER", "status": "SUCCESS", "details": {"filename": "resume.docx"}}
 {"timestamp": "2026-09-19T08:39:15.150219", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
 {"timestamp": "2026-09-19T08:39:16.857424", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
+{"timestamp": "2026-09-19T08:52:43.307922", "event_type": "SMOKE_TEST_COMPLETED", "actor": "SYSTEM", "status": "SUCCESS", "details": {"status": "all_passed"}}
+{"timestamp": "2026-09-19T08:52:43.337441", "event_type": "TEST_EVENT", "actor": "SYSTEM", "status": "SUCCESS", "details": {"api_key": "[REDACTED]", "action": "test"}}
