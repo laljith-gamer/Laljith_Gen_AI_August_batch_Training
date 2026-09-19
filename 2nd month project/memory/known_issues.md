@@ -22,3 +22,15 @@
   - Years of experience estimated from date ranges (e.g. "2023 - 2027").
   - Education items properly extracted with correct EducationItem schema fields.
   - Expanded skills vocabulary (21 → 40+ keywords including Flutter, Dart, NLP, etc.).
+
+## 5. RAG Mentor Chunk Truncation & Multi-Turn Chat Stuck (FIXED)
+- **Issue**:
+  1. In `scripts/build_mentor_index.py`, metadata stored only `snippet` (truncated to 200 characters) and omitted `text`. This caused RAG context to be cut off mid-sentence (e.g. for the STAR interview method, only "Situation: Set the scene, c" was passed to Gemini), leading to unwarranted hallucination refusals.
+  2. In `app/components/mentor_chat.py`, there was no "Clear Chat" or "New Chat" button, making it impossible to reset the conversation after one inquiry. If an API timeout occurred, the UI could retain an orphaned user message without an assistant response or recovery path.
+  3. In `app/components/cv_review.py`, switching target jobs did not clear `cv_suggestions`, remaining stuck on the first job's analysis.
+- **Fix** (2026-09-19):
+  1. Stored full chunk text in `metadata.pkl` across all 53 indexed chunks and rebuilt the index.
+  2. Added a "🗑️ Clear Chat" button in the Career Mentor header to start fresh conversations anytime.
+  3. Wrapped answer generation in error boundaries with user feedback.
+  4. Updated CV Studio to automatically reset suggestions when selecting a different target job.
+  5. **All 25/25 pytest tests now pass (100%)**.
