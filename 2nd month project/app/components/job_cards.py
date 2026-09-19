@@ -72,6 +72,9 @@ def render_job_matches():
     if not matches:
         with st.container(border=True):
             st.info("No matching roles found with the current filters. Try broadening your location or clearing keywords.")
+            if st.button("Reload recommended jobs", type="primary"):
+                st.session_state.job_matches = None
+                st.rerun()
         return
 
     st.markdown(f"**Found {len(matches)} relevant positions for `{profile.target_role or 'Software Professional'}`:**")

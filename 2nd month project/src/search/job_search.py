@@ -158,6 +158,45 @@ class JobSearchEngine:
             if len(job_matches) >= k:
                 break
 
+        # Fallback: if similarity threshold was too strict or offline fallback gave low scores,
+        # ensure candidate still receives top semantic / skill-matched recommendations
+        if not job_matches and raw_results:
+            logger.info("Applying relaxed threshold fallback for job matching.")
+            for meta, score in raw_results:
+                job_skills = meta.get("skills", [])
+                if isinstance(job_skills, str):
+                    job_skills = [s.strip() for s in job_skills.split(",") if s.strip()]
+
+                job = JobPosting(
+                    job_id=str(meta.get("job_id", "")),
+                    title=str(meta.get("title", "Job Title")),
+                    company=str(meta.get("company", "Company")),
+                    location=str(meta.get("location", "Location")),
+                    skills=job_skills,
+                    description=str(meta.get("description", "")),
+                    source=str(meta.get("source", "dataset")),
+                )
+                if location_filter and location_filter.strip():
+                    if location_filter.lower() not in job.location.lower():
+                        continue
+
+                matched_skills, missing_skills = self.calculate_skill_overlap(approved.skills, job.skills)
+                explanation = (
+                    f"Recommended opportunity for {job.title}. "
+                    f"Shares {len(matched_skills)} key skills ({', '.join(matched_skills[:3]) if matched_skills else 'conceptual domain alignment'})."
+                )
+                job_matches.append(
+                    JobMatchResult(
+                        job=job,
+                        similarity_score=round(max(score, 0.50), 3),
+                        matched_skills=matched_skills,
+                        missing_skills=missing_skills,
+                        match_explanation=explanation,
+                    )
+                )
+                if len(job_matches) >= k:
+                    break
+
         return job_matches
 
     def search_by_text(

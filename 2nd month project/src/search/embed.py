@@ -36,7 +36,12 @@ class EmbeddingManager:
         if self.enable_cache and CACHE_FILE.exists():
             try:
                 with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                    self.cache = json.load(f)
+                    raw_cache = json.load(f)
+                # Purge any fallback vectors (local TF-IDF has > 2000 zeros out of 3072)
+                self.cache = {
+                    k: v for k, v in raw_cache.items()
+                    if isinstance(v, list) and np.sum(np.array(v) == 0) < 2000
+                }
             except Exception as e:
                 logger.warning(f"Could not load embedding cache: {e}")
                 self.cache = {}
@@ -94,30 +99,36 @@ class EmbeddingManager:
         # If missing texts exist, fetch embeddings
         if missing_texts:
             newly_embedded = None
+            is_fallback = False
             if self.api_key:
                 try:
                     newly_embedded = self._embed_with_gemini(missing_texts)
                 except Exception as exc:
-                    logger.warning(f"Gemini embedding API call failed: {exc}. Falling back to local vectorizer.")
+                    logger.warning(f"Gemini embedding API call failed after retries: {exc}. Falling back to local vectorizer.")
                     newly_embedded = self._embed_with_local(missing_texts)
+                    is_fallback = True
             else:
                 logger.info("No GEMINI_API_KEY provided; using local TF-IDF fallback vectorizer.")
                 newly_embedded = self._embed_with_local(missing_texts)
+                is_fallback = True
 
             for idx, vec in zip(missing_indices, newly_embedded):
                 norm_vec = self.normalize_vector(vec)
                 results[idx] = norm_vec
-                if self.enable_cache:
+                # Only cache verified Gemini embeddings, never fallback vectors
+                if self.enable_cache and not is_fallback:
                     h = self._hash_text(clean_texts[idx], self.model_name)
                     self.cache[h] = norm_vec.tolist()
 
-            self._save_cache()
+            if not is_fallback:
+                self._save_cache()
 
         matrix = np.array(results, dtype=np.float32)
         return matrix
 
     def _embed_with_gemini(self, texts: List[str]) -> List[np.ndarray]:
-        """Fetch dense embeddings from Gemini API."""
+        """Fetch dense embeddings from Gemini API with exponential backoff retry."""
+        import time
         client = get_gemini_client(api_key=self.api_key)
         vectors: List[np.ndarray] = []
 
@@ -126,12 +137,27 @@ class EmbeddingManager:
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
             for text in batch:
-                response = client.models.embed_content(
-                    model=self.model_name,
-                    contents=text,
-                )
-                raw_values = response.embeddings[0].values
-                vectors.append(np.array(raw_values, dtype=np.float32))
+                max_retries = 3
+                last_exc = None
+                for attempt in range(max_retries):
+                    try:
+                        response = client.models.embed_content(
+                            model=self.model_name,
+                            contents=text,
+                        )
+                        raw_values = response.embeddings[0].values
+                        vectors.append(np.array(raw_values, dtype=np.float32))
+                        last_exc = None
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                        wait_sec = (attempt + 1) * 2
+                        logger.warning(
+                            f"Gemini embed attempt {attempt + 1}/{max_retries} failed ({exc}). Retrying in {wait_sec}s..."
+                        )
+                        time.sleep(wait_sec)
+                if last_exc:
+                    raise last_exc
 
         return vectors
 
