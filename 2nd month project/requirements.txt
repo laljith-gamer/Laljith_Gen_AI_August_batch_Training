@@ -11,6 +11,9 @@ python-dotenv>=1.0.0
 pytest>=8.0.0
 scikit-learn>=1.4.0
 
+# Kaggle dataset acquisition
+kaggle>=2.2.4,<3.0.0
+
 # Jupyter Notebook Environment
 notebook>=7.0.0
 ipykernel>=6.29.0
