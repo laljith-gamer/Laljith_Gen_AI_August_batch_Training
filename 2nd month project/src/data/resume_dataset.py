@@ -30,6 +30,11 @@ class ResumeDatasetManager:
             return cls._dataset_path
 
         candidates = [
+            # Canonical downloaded Kaggle location.
+            settings.PROJECT_ROOT / "data/raw/kaggle/resumes/Resume.csv",
+            # Kaggle's extracted archive layout.
+            settings.PROJECT_ROOT / "data/raw/kaggle/resumes/Resume/Resume.csv",
+            # Existing/local compatibility locations.
             settings.PROJECT_ROOT / "Resume.csv",
             settings.PROJECT_ROOT.parent / "Resume.csv",
             settings.PROJECT_ROOT / "data/resumes/Resume.csv",
