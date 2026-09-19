@@ -144,15 +144,19 @@ def print_size(path: Path) -> None:
     print(f"[READY]    {path}/ ({size_mb:.2f} MB extracted)")
 
 
-def download_resume() -> None:
+def download_resume(full: bool = False) -> None:
     target = DATASETS["resume"]["target"]
 
-    # Download only the CSV required by ResumeDatasetManager by default.
-    run_kaggle_download(
-        DATASETS["resume"]["slug"],
-        target,
-        file_name="Resume/Resume.csv",
-    )
+    if full:
+        # Preserve the complete Kaggle dataset tree, including the PDF collection.
+        run_kaggle_download(DATASETS["resume"]["slug"], target)
+    else:
+        # Download only the CSV required by ResumeDatasetManager by default.
+        run_kaggle_download(
+            DATASETS["resume"]["slug"],
+            target,
+            file_name="Resume/Resume.csv",
+        )
 
     canonical = canonicalize_resume_dataset(target)
     validate_csv_header(
@@ -208,6 +212,11 @@ def main() -> int:
         required=True,
         help="Comma-separated values: resume, naukri, linkedin, all",
     )
+    parser.add_argument(
+        "--full-resume",
+        action="store_true",
+        help="For the resume dataset, download the complete Kaggle tree including PDFs instead of only Resume.csv.",
+    )
     args = parser.parse_args()
 
     requested = [value.strip().lower() for value in args.dataset.split(",") if value.strip()]
@@ -224,7 +233,7 @@ def main() -> int:
     try:
         for dataset in requested:
             if dataset == "resume":
-                download_resume()
+                download_resume(full=args.full_resume)
             elif dataset == "naukri":
                 download_naukri()
             elif dataset == "linkedin":
