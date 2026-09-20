@@ -8,3 +8,5 @@
 {"timestamp": "2026-09-19T12:19:41.930181", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-19T12:21:39.108622", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-19T12:29:41.772725", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-19T12:47:13.595228", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-19T13:06:01.999680", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
