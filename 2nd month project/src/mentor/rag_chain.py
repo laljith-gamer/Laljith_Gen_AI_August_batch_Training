@@ -116,24 +116,33 @@ class MentorRAGChain:
             temperature=0.2,
         )
 
-        try:
-            response = client.models.generate_content(
-                model=target_model,
-                contents=prompt,
-                config=config,
-            )
-            return response.text.strip()
-        except Exception as exc:
-            fallback = settings.GEMINI_FALLBACK_MODEL
-            if fallback and fallback != target_model:
-                logger.warning(f"Retrying RAG generation with fallback {fallback}...")
+        import time
+        max_attempts = 2
+        last_exc = None
+        for attempt in range(max_attempts):
+            try:
                 response = client.models.generate_content(
-                    model=fallback,
+                    model=target_model,
                     contents=prompt,
                     config=config,
                 )
                 return response.text.strip()
-            raise exc
+            except Exception as exc:
+                last_exc = exc
+                if attempt < max_attempts - 1 and ("503" in str(exc) or "demand" in str(exc).lower()):
+                    time.sleep(1.5)
+                    continue
+                break
+
+        fallback = settings.GEMINI_FALLBACK_MODEL
+        if fallback and fallback != target_model:
+            response = client.models.generate_content(
+                model=fallback,
+                contents=prompt,
+                config=config,
+            )
+            return response.text.strip()
+        raise last_exc
 
     def _fallback_grounded_answer(
         self,
