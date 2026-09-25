@@ -19,6 +19,15 @@ from src.human_loop.audit import AuditLogger
 from src.human_loop.feedback import FeedbackManager
 
 from app.state import AppStateManager
+from app.ui import (
+    inject_global_styles,
+    render_page_header,
+    render_badge,
+    render_workflow_stepper,
+    render_sidebar_brand,
+    render_sidebar_status_widget,
+    render_metric_card,
+)
 from app.components.profile_review import render_profile_review
 from app.components.job_cards import render_job_matches
 from app.components.cv_review import render_cv_review
@@ -32,154 +41,206 @@ st.set_page_config(
 )
 
 AppStateManager.initialize_state()
+active_theme = AppStateManager.get_theme_mode()
 
-# --- SIDEBAR ---
+# Inject centralized styling tokens and layout rules (theme-aware)
+inject_global_styles(theme_mode=active_theme)
+
+# --- SIDEBAR APP SHELL ---
 with st.sidebar:
-    st.markdown("### SmartHire")
-    st.caption("Career intelligence workspace")
+    render_sidebar_brand()
 
-    main_nav_options = ["Overview", "Profile", "Jobs", "Resume", "Mentor"]
+    st.html('<div class="sh-nav-section-label">WORKSPACE</div>')
 
     current_view = AppStateManager.get_active_view()
-    default_idx = main_nav_options.index(current_view) if current_view in main_nav_options else 0
 
-    selected_nav = st.radio(
-        "Career Workflow",
-        options=main_nav_options,
-        index=default_idx,
-        label_visibility="collapsed",
-    )
+    workspace_items = [
+        ("Overview", ":material/dashboard:  Overview"),
+        ("Profile", ":material/account_circle:  Profile"),
+        ("Jobs", ":material/work:  Jobs"),
+        ("Resume Studio", ":material/description:  Resume Studio"),
+        ("Career Mentor", ":material/psychology:  Career Mentor"),
+    ]
 
-    if selected_nav != current_view and selected_nav in main_nav_options:
-        AppStateManager.set_active_view(selected_nav)
-        st.rerun()
+    for view_key, view_label in workspace_items:
+        is_active = current_view == view_key
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(view_label, key=f"nav_btn_{view_key}", type=btn_type, width="stretch"):
+            if current_view != view_key:
+                AppStateManager.set_active_view(view_key)
+                st.rerun()
 
-    st.markdown("---")
-    st.caption("WORKSPACE PROGRESS")
+    st.html('<div class="sh-nav-section-label">WORKFLOW STATUS</div>')
     summary = AppStateManager.get_status_summary()
+    render_sidebar_status_widget(summary)
 
-    if summary["profile_status"] == "Confirmed":
-        st.markdown(":green-badge[Profile confirmed]")
-    elif summary["profile_status"] == "Review required":
-        st.markdown(":orange-badge[Review required]")
-    else:
-        st.markdown(":gray-badge[No resume added]")
+    st.html('<div class="sh-nav-section-label">TOOLS</div>')
+    tools_items = [
+        ("Evaluation", ":material/analytics:  Evaluation"),
+        ("Settings", ":material/settings:  Settings"),
+    ]
 
-    if summary["target_role"] != "Not specified":
-        st.caption(f"Target: {summary['target_role']}")
-    if summary["job_count"] > 0:
-        st.caption(f"Matches: {summary['job_count']} roles")
+    for tool_key, tool_label in tools_items:
+        is_active = current_view == tool_key
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(tool_label, key=f"nav_btn_{tool_key}", type=btn_type, width="stretch"):
+            if current_view != tool_key:
+                AppStateManager.set_active_view(tool_key)
+                st.rerun()
 
-    st.markdown("---")
-    st.caption("UTILITIES")
-    util_views = ["Evaluation & Telemetry", "Settings"]
+    st.html('<div class="sh-nav-section-label">APPEARANCE</div>')
+    theme_options = ["Light", "Dark"]
+    theme_display_map = {"Light": "☀️ Light", "Dark": "🌙 Dark"}
 
-    util_idx = 0
-    if current_view in util_views:
-        util_idx = util_views.index(current_view) + 1
+    def _on_sidebar_theme_changed():
+        choice = st.session_state.get("sidebar_theme_choice")
+        if choice:
+            AppStateManager.set_theme_mode(choice.lower())
 
-    selected_util = st.selectbox(
-        "Utility Views",
-        options=["Workflow view"] + util_views,
-        index=util_idx,
+    st.segmented_control(
+        "Theme Mode",
+        options=theme_options,
+        format_func=lambda x: theme_display_map[x],
+        key="sidebar_theme_choice",
+        on_change=_on_sidebar_theme_changed,
         label_visibility="collapsed",
     )
 
-    if selected_util != "Workflow view" and selected_util != current_view:
-        AppStateManager.set_active_view(selected_util)
-        st.rerun()
-    elif selected_util == "Workflow view" and current_view in util_views:
-        AppStateManager.set_active_view("Overview")
-        st.rerun()
-
-    st.markdown("---")
+    st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
     st.caption("SmartHire v1.0 · Grounded Career Intelligence")
 
-# --- MAIN CONTENT ---
+# --- MAIN WORKSPACE ROUTING ---
 active_view = AppStateManager.get_active_view()
 
 # --- OVERVIEW ---
 if active_view == "Overview":
-    st.subheader("Your career workspace")
-    st.markdown("Review your profile, explore matching roles, and improve your application.")
+    render_page_header(
+        eyebrow="CAREER WORKSPACE",
+        title="Your career workspace",
+        description="Review your verified profile, discover matching roles, and prepare targeted applications.",
+    )
 
     summary = AppStateManager.get_status_summary()
+    state_key = summary.get("state_key", "NO_RESUME")
+
+    # Dynamic Hero Next Action Card
+    card_border_cls = "confirmed" if summary["profile_status"] == "Confirmed" else ("review-required" if summary["profile_status"] == "Review required" else "")
+
+    if state_key == "NO_RESUME":
+        hero_badge = render_badge("Step 1 of 5", "neutral")
+        hero_title = "Add your resume to begin"
+        hero_desc = "Upload your resume document to extract verified competencies, evaluate matching roles, and tailor applications."
+        hero_cta = "Add your resume →"
+    elif state_key == "REVIEW_REQUIRED":
+        hero_badge = render_badge("Action needed", "warning")
+        hero_title = "Profile review required"
+        hero_desc = "The AI extracted competencies from your resume. Verify and confirm your profile to unlock job matching."
+        hero_cta = "Review & confirm profile →"
+    elif state_key == "PROFILE_CONFIRMED":
+        hero_badge = render_badge("Profile confirmed", "success")
+        hero_title = "Discover matching opportunities"
+        hero_desc = "Your competencies are verified. Explore semantic job matches tailored to your career direction."
+        hero_cta = "Explore matching jobs →"
+    elif state_key == "JOBS_FOUND":
+        hero_badge = render_badge("Roles discovered", "primary")
+        hero_title = "Tailor your resume for a target role"
+        hero_desc = "Select a position in Resume Studio to identify skill gaps and optimize experience bullet points."
+        hero_cta = "Open Resume Studio →"
+    else:
+        hero_badge = render_badge("Workspace ready", "success")
+        hero_title = "Consult your grounded career mentor"
+        hero_desc = "Prepare for behavioral interviews and explore role transitions grounded in verified roadmaps."
+        hero_cta = "Open Career Mentor →"
 
     with st.container(border=True):
-        st_col1, st_col2 = st.columns([3, 1])
-        with st_col1:
-            if summary["profile_status"] == "Confirmed":
-                st.markdown(f"### Next step: {summary['next_action']}")
-                st.markdown(f"{summary['next_hint']}")
-            elif summary["profile_status"] == "Review required":
-                st.markdown("### Profile review required")
-                st.markdown("Your resume has been analyzed. Verify the extracted competencies before they are used for matching.")
-            else:
-                st.markdown("### Get started by adding your resume")
-                st.markdown("Upload your existing resume to build your verified career profile.")
-        with st_col2:
+        st.html(f"""
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            {hero_badge}
+        </div>
+        """)
+        h_col1, h_col2 = st.columns([3, 1])
+        with h_col1:
+            st.markdown(f"### {hero_title}")
+            st.markdown(f"<p style='color: var(--sh-text-muted); font-size: 0.95rem; margin: 0;'>{hero_desc}</p>", unsafe_allow_html=True)
+        with h_col2:
             st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-            if st.button(f"{summary['next_action']} →", type="primary"):
+            if st.button(hero_cta, type="primary", key="btn_hero_next_action"):
                 AppStateManager.set_active_view(summary["next_view"])
                 st.rerun()
 
-    st.markdown("#### Progress")
-    p1, p2, p3, p4, p5 = st.columns(5)
-
+    # Workflow Stepper Visualization
+    st.markdown("#### Workflow progress")
     has_resume = summary["resume_name"] is not None
     is_approved = summary["profile_status"] == "Confirmed"
     has_jobs = summary["job_count"] > 0
     has_cv = summary["has_cv_plan"]
     has_chat = len(st.session_state.get("mentor_chat_history", [])) > 0
 
-    with p1:
-        with st.container(border=True):
-            st.caption("1. RESUME")
-            st.markdown(f"**{summary['resume_name'] or 'Not uploaded'}**")
-            st.caption("✓ Added" if has_resume else "Pending upload")
-    with p2:
-        with st.container(border=True):
-            st.caption("2. PROFILE")
-            st.markdown(f"**{summary['profile_status']}**")
-            st.caption("✓ Confirmed" if is_approved else ("Action needed" if has_resume else "Pending"))
-    with p3:
-        with st.container(border=True):
-            st.caption("3. JOBS")
-            st.markdown(f"**{summary['job_count']} matches**" if has_jobs else "**No search yet**")
-            st.caption("✓ Explored" if has_jobs else ("Ready" if is_approved else "Locked"))
-    with p4:
-        with st.container(border=True):
-            st.caption("4. RESUME STUDIO")
-            st.markdown(f"**{summary['selected_job'][:18] + '...' if summary['selected_job'] and len(summary['selected_job']) > 18 else (summary['selected_job'] or 'No role selected')}**")
-            st.caption("✓ Tailored" if has_cv else ("Role selected" if summary['selected_job'] else "Ready"))
-    with p5:
-        with st.container(border=True):
-            st.caption("5. MENTOR")
-            st.markdown("**Grounded RAG**")
-            st.caption("✓ Active chat" if has_chat else "Available")
+    stages = [
+        {
+            "num": "01",
+            "title": "Resume",
+            "state": "completed" if has_resume else "current",
+            "caption": summary["resume_name"] or "Pending upload",
+        },
+        {
+            "num": "02",
+            "title": "Profile",
+            "state": "completed" if is_approved else ("current" if has_resume else "locked"),
+            "caption": "Confirmed" if is_approved else ("Review required" if has_resume else "Locked"),
+        },
+        {
+            "num": "03",
+            "title": "Jobs",
+            "state": "completed" if has_jobs else ("current" if is_approved else "locked"),
+            "caption": f"{summary['job_count']} matches" if has_jobs else ("Ready" if is_approved else "Locked"),
+        },
+        {
+            "num": "04",
+            "title": "Resume Studio",
+            "state": "completed" if has_cv else ("current" if summary["selected_job"] else ("available" if has_jobs else "locked")),
+            "caption": (summary["selected_job"][:15] + "...") if summary["selected_job"] else ("Ready" if has_jobs else "Locked"),
+        },
+        {
+            "num": "05",
+            "title": "Career Mentor",
+            "state": "completed" if has_chat else "available",
+            "caption": "Active chat" if has_chat else "Available",
+        },
+    ]
+    render_workflow_stepper(stages)
 
+    # 3 Career Workflow Action Cards
     st.markdown("#### Career workflow")
     c_col1, c_col2, c_col3 = st.columns(3)
     with c_col1:
         with st.container(border=True):
-            st.markdown("##### 1. Review profile")
-            st.caption("Ensure your skills, target role, and summary accurately represent your background before any AI matching.")
+            st.caption("01 · PROFILE")
+            st.markdown("##### Review profile")
+            st.caption("Ensure your skills, target role, and summary accurately represent your background before AI matching.")
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
             if st.button("Open profile", key="btn_open_profile"):
                 AppStateManager.set_active_view("Profile")
                 st.rerun()
+
     with c_col2:
         with st.container(border=True):
-            st.markdown("##### 2. Explore roles")
+            st.caption("02 · MATCHING")
+            st.markdown("##### Explore roles")
             st.caption("Discover positions matching your verified competencies with clear explanations of why they match.")
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
             if st.button("Explore jobs", key="btn_open_jobs"):
                 AppStateManager.set_active_view("Jobs")
                 st.rerun()
+
     with c_col3:
         with st.container(border=True):
-            st.markdown("##### 3. Improve & prepare")
+            st.caption("03 · OPTIMIZATION")
+            st.markdown("##### Improve & prepare")
             st.caption("Tailor your experience bullets for a specific position and consult the grounded career mentor.")
-            if st.button("Open mentor", key="btn_open_mentor"):
-                AppStateManager.set_active_view("Mentor")
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+            if st.button("Open Resume Studio", key="btn_open_cv"):
+                AppStateManager.set_active_view("Resume Studio")
                 st.rerun()
 
 # --- PROFILE REVIEW ---
@@ -191,29 +252,29 @@ elif active_view == "Jobs":
     render_job_matches()
 
 # --- RESUME STUDIO ---
-elif active_view == "Resume":
+elif active_view in ("Resume", "Resume Studio"):
     render_cv_review()
 
 # --- CAREER MENTOR ---
-elif active_view == "Mentor":
+elif active_view in ("Mentor", "Career Mentor"):
     render_mentor_chat()
 
 # --- EVALUATION & TELEMETRY ---
-elif active_view == "Evaluation & Telemetry":
-    st.subheader("Evaluation & system benchmarks")
-    st.markdown(
-        "Automated benchmarks measuring retrieval hit rate, hallucination refusal accuracy, "
-        "and human feedback telemetry across all subsystems."
+elif active_view in ("Evaluation", "Evaluation & Telemetry"):
+    render_page_header(
+        eyebrow="SYSTEM TELEMETRY",
+        title="System benchmarks & evaluation",
+        description="Automated benchmarks measuring retrieval hit rate, hallucination refusal accuracy, and human feedback telemetry.",
     )
 
     ev_col1, ev_col2 = st.columns([1, 3])
     with ev_col1:
-        if st.button("Run full evaluation suite", type="primary"):
+        if st.button("Run full evaluation suite", type="primary", key="btn_run_eval"):
             from src.evaluate import SystemEvaluator
-            with st.spinner("Running automated benchmarks..."):
+            with st.spinner("Running automated benchmarks across subsystems..."):
                 evaluator = SystemEvaluator()
                 evaluator.run_full_evaluation()
-                st.success("Benchmarks updated.")
+                st.toast("Evaluation suite executed.")
                 st.rerun()
 
     report_json_path = settings.PROJECT_ROOT / "reports/evaluation_results.json"
@@ -224,49 +285,75 @@ elif active_view == "Evaluation & Telemetry":
         m1, m2, m3, m4 = st.columns(4)
         with m1:
             hit_rate = eval_data.get("retrieval_evaluation", {}).get("hit_rate", 0.0)
-            st.metric("Retrieval Hit Rate", f"{hit_rate * 100:.1f}%")
+            render_metric_card("Retrieval Hit Rate", f"{hit_rate * 100:.1f}%", "FAISS knowledge index")
         with m2:
             refusal_rate = eval_data.get("hallucination_evaluation", {}).get("refusal_rate", 0.0)
-            st.metric("Hallucination Refusal", f"{refusal_rate * 100:.1f}%")
+            render_metric_card("Hallucination Refusal", f"{refusal_rate * 100:.1f}%", "Out-of-scope defense")
         with m3:
             j_rate = eval_data.get("hitl_feedback_metrics", {}).get("job_relevance_rate", 0.0)
-            st.metric("Job Relevance Feedback", f"{j_rate * 100:.1f}%")
+            render_metric_card("Job Relevance", f"{j_rate * 100:.1f}%", "User relevance telemetry")
         with m4:
             m_rate = eval_data.get("hitl_feedback_metrics", {}).get("mentor_helpfulness_rate", 0.0)
-            st.metric("Mentor Helpfulness", f"{m_rate * 100:.1f}%")
+            render_metric_card("Mentor Helpfulness", f"{m_rate * 100:.1f}%", "Grounded answer rating")
 
-        st.markdown("---")
-        st.markdown("#### Evaluation report summary")
-        report_md_path = settings.PROJECT_ROOT / "reports/answer_quality.md"
-        if report_md_path.exists():
-            st.markdown(report_md_path.read_text(encoding="utf-8"))
+        st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+        with st.expander("Evaluation report summary", expanded=False):
+            report_md_path = settings.PROJECT_ROOT / "reports/answer_quality.md"
+            if report_md_path.exists():
+                st.markdown(report_md_path.read_text(encoding="utf-8"))
 
     st.markdown("---")
-    st.markdown("#### System audit event log")
+    st.markdown("##### System audit event log")
     recent_logs = AuditLogger.get_recent_logs(limit=20)
     if recent_logs:
-        st.dataframe(recent_logs)
+        st.dataframe(recent_logs, width="stretch")
     else:
         st.caption("No audit events logged yet.")
 
 # --- SETTINGS ---
 elif active_view == "Settings":
-    st.subheader("Settings & configuration")
+    render_page_header(
+        eyebrow="CONFIGURATION",
+        title="Settings & environment",
+        description="Manage API credentials and review active inference and vector search configurations.",
+    )
 
     with st.container(border=True):
-        st.markdown("#### API configuration")
+        st.markdown("##### API configuration")
+        st.caption("Configure or override the Gemini API key for this interactive session.")
         custom_key = st.text_input(
             "Gemini API Key (Session Override)",
             type="password",
             value=st.session_state.get("custom_api_key", ""),
             help="Optional: Leave blank to use configured environment key.",
+            key="input_session_api_key",
         )
         if custom_key != st.session_state.get("custom_api_key"):
             st.session_state.custom_api_key = custom_key
-            st.success("API key updated for current session.")
+            st.toast("API key updated for current session.")
 
     with st.container(border=True):
-        st.markdown("#### Active engine configuration")
+        st.markdown("##### Workspace appearance")
+        st.caption("Toggle between Light Mode and Dark Mode for the application interface.")
+
+        def _on_settings_theme_changed():
+            choice = st.session_state.get("settings_theme_mode_selector")
+            if choice:
+                AppStateManager.set_theme_mode(choice.lower())
+
+        st.segmented_control(
+            "Appearance Mode",
+            options=["Light", "Dark"],
+            format_func=lambda x: f"{'☀️' if x == 'Light' else '🌙'} {x} Mode",
+            key="settings_theme_mode_selector",
+            on_change=_on_settings_theme_changed,
+            label_visibility="collapsed",
+        )
+        st.caption(f"Active theme: **{active_theme.capitalize()} Mode**. The theme adapts all surface colors, text hierarchy, container cards, specular buttons, and interactive widgets.")
+
+    with st.container(border=True):
+        st.markdown("##### Active engine configuration")
+        st.caption("Current model runtime and search parameters:")
         st.markdown(f"• **Primary LLM:** `{settings.GEMINI_MODEL}`")
         st.markdown(f"• **Embedding Model:** `{settings.GEMINI_EMBEDDING_MODEL}` (Dimension: `{settings.EMBEDDING_DIMENSION}`)")
         st.markdown(f"• **Job Search Threshold:** `{settings.SIMILARITY_THRESHOLD}` (Top-K: `{settings.TOP_K_JOBS}`)")

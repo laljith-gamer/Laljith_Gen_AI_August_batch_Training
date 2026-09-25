@@ -1,6 +1,6 @@
 """
 Interactive AI Career Mentor Chat Component powered by Grounded RAG and Guardrails.
-Calm, natural career coaching grounded strictly in verified roadmaps and interview frameworks.
+Provides calm, structured career coaching grounded strictly in verified roadmaps and frameworks.
 """
 
 import logging
@@ -12,36 +12,39 @@ from src.mentor.rag_chain import MentorRAGChain
 from src.human_loop.feedback import FeedbackManager
 from src.human_loop.audit import AuditLogger
 from app.state import AppStateManager
+from app.ui import render_page_header, render_badge
 
 logger = logging.getLogger(__name__)
+
 
 def render_mentor_chat():
     head_col1, head_col2 = st.columns([4, 1])
     with head_col1:
-        st.subheader("Career mentor")
-        st.markdown(
-            "Ask about interview preparation frameworks, skill transitions, or career roadmaps. "
-            "Answers are **strictly grounded in verified career guides** with traceable citations."
+        render_page_header(
+            eyebrow="CAREER MENTOR",
+            title="Grounded career guidance",
+            description="Consult an AI career mentor grounded strictly in verified career roadmaps and interview frameworks.",
         )
     with head_col2:
-        st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
-        if st.button("New conversation", help="Start a fresh conversation"):
+        st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
+        if st.button("New conversation", help="Start a fresh conversation", key="btn_mentor_new_chat"):
             st.session_state.mentor_chat_history = []
             st.session_state.pop("pending_mentor_query", None)
+            st.toast("Conversation reset.")
             st.rerun()
 
     # Pre-canned conversation starters (natural questions)
-    st.caption("Suggested conversation starters:")
+    st.markdown("##### Suggested inquiry topics")
     q1, q2, q3 = st.columns(3)
     preset_query = None
     with q1:
-        if st.button("Preparing for behavioral interviews (STAR)"):
+        if st.button("Preparing for behavioral interviews (STAR)", key="btn_starter_star"):
             preset_query = "Explain how to prepare for interviews using the STAR method."
     with q2:
-        if st.button("Transitioning from Backend to AI/ML"):
+        if st.button("Transitioning from Backend to AI/ML", key="btn_starter_trans"):
             preset_query = "How can a Backend Developer transition into Machine Learning and GenAI?"
     with q3:
-        if st.button("Skills required for Data Analytics"):
+        if st.button("Skills required for Data Analytics", key="btn_starter_data"):
             preset_query = "What skills and tools are required for a Data Analyst role?"
 
     if preset_query:
@@ -55,12 +58,18 @@ def render_mentor_chat():
 
     if not chat_history and not st.session_state.get("pending_mentor_query"):
         with st.container(border=True):
-            st.markdown("**Welcome to your Career Mentor**")
-            st.caption(
-                "You can ask any technical career question below. For example: "
-                "'How should I structure resume bullets?', 'What should I study for a system design interview?', "
-                "or click one of the suggested topics above."
-            )
+            st.html(f"""
+            <div style="padding: 0.5rem 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    {render_badge('Grounded RAG', 'primary')}
+                    <span style="font-weight: 600; color: var(--sh-text); font-size: 1rem;">Your career mentor is ready</span>
+                </div>
+                <p style="color: var(--sh-text-muted); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                    Ask any question regarding technical interview preparation, career transitions, or role requirements. 
+                    Every response is strictly retrieved and cited from verified knowledge base documents.
+                </p>
+            </div>
+            """)
 
     for idx, msg in enumerate(chat_history):
         role = msg.get("role", "user")
@@ -74,14 +83,14 @@ def render_mentor_chat():
                             st.caption(f"Excerpt: *\"{c['snippet']}...\"*")
 
                 # Subtle feedback buttons
-                f_col1, f_col2, f_col3 = st.columns([1, 1, 5])
+                f_col1, f_col2, f_col3 = st.columns([1, 1, 4])
                 with f_col1:
-                    if st.button("Helpful", key=f"f_help_{idx}"):
+                    if st.button("Helpful", key=f"f_help_{idx}", help="Rate this response as helpful"):
                         sources = [c.get("source_title", "") for c in msg.get("citations", [])]
                         FeedbackManager.record_mentor_feedback(msg.get("question", ""), msg.get("content", ""), "helpful", sources)
                         st.toast("Thank you for your feedback.")
                 with f_col2:
-                    if st.button("Not helpful", key=f"f_unhelp_{idx}"):
+                    if st.button("Not helpful", key=f"f_unhelp_{idx}", help="Rate this response as unhelpful"):
                         sources = [c.get("source_title", "") for c in msg.get("citations", [])]
                         FeedbackManager.record_mentor_feedback(msg.get("question", ""), msg.get("content", ""), "not_helpful", sources)
                         st.toast("Feedback recorded.")
@@ -98,7 +107,7 @@ def render_mentor_chat():
 
         # Generate response with error boundary
         with st.chat_message("assistant"):
-            with st.spinner("Checking career knowledge base..."):
+            with st.spinner("Retrieving verified career documents..."):
                 try:
                     rag_chain = MentorRAGChain(api_key=AppStateManager.get_api_key())
                     response: MentorResponse = rag_chain.answer_question(query_to_process)

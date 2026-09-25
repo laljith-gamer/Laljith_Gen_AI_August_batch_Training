@@ -18,6 +18,14 @@ class AppStateManager:
 
     @classmethod
     def initialize_state(cls):
+        # Detect initial theme preference from Streamlit context
+        initial_theme = "light"
+        ctx = getattr(st, "context", None)
+        ctx_theme = getattr(ctx, "theme", None)
+        theme_type = getattr(ctx_theme, "type", None) if not isinstance(ctx_theme, dict) else (ctx_theme.get("type") if ctx_theme else None)
+        if theme_type in ("dark", "light"):
+            initial_theme = theme_type
+
         defaults = {
             "workflow_state": WorkflowState.NO_RESUME,
             "uploaded_file_name": None,
@@ -30,6 +38,9 @@ class AppStateManager:
             "custom_api_key": "",
             "active_view": "Overview",
             "editing_profile": False,
+            "theme_mode": initial_theme,
+            "sidebar_theme_choice": initial_theme.capitalize(),
+            "settings_theme_mode_selector": initial_theme.capitalize(),
         }
         for key, val in defaults.items():
             if key not in st.session_state:
@@ -43,13 +54,41 @@ class AppStateManager:
     def get_workflow_state(cls) -> WorkflowState:
         return st.session_state.get("workflow_state", WorkflowState.NO_RESUME)
 
+    VIEW_ALIASES = {
+        "Resume": "Resume Studio",
+        "Mentor": "Career Mentor",
+        "Evaluation & Telemetry": "Evaluation",
+    }
+
     @classmethod
     def set_active_view(cls, view_name: str):
-        st.session_state.active_view = view_name
+        canonical = cls.VIEW_ALIASES.get(view_name, view_name)
+        st.session_state.active_view = canonical
 
     @classmethod
     def get_active_view(cls) -> str:
-        return st.session_state.get("active_view", "Overview")
+        view = st.session_state.get("active_view", "Overview")
+        return cls.VIEW_ALIASES.get(view, view)
+
+    @classmethod
+    def get_theme_mode(cls) -> str:
+        mode = st.session_state.get("theme_mode")
+        if mode:
+            return mode.lower()
+        ctx = getattr(st, "context", None)
+        ctx_theme = getattr(ctx, "theme", None)
+        theme_type = getattr(ctx_theme, "type", None) if not isinstance(ctx_theme, dict) else (ctx_theme.get("type") if ctx_theme else None)
+        if theme_type in ("dark", "light"):
+            return theme_type
+        return "light"
+
+    @classmethod
+    def set_theme_mode(cls, mode: str):
+        normalized = mode.lower()
+        st.session_state.theme_mode = normalized
+        display = "Dark" if normalized == "dark" else "Light"
+        st.session_state["sidebar_theme_choice"] = display
+        st.session_state["settings_theme_mode_selector"] = display
 
     @classmethod
     def is_profile_approved(cls) -> bool:
@@ -88,26 +127,31 @@ class AppStateManager:
             next_action = "Upload resume"
             next_view = "Profile"
             next_hint = "Upload a PDF or DOCX to build your career profile."
+            state_key = "NO_RESUME"
         elif not container.is_approved:
             profile_badge = "Review required"
             next_action = "Review profile"
             next_view = "Profile"
             next_hint = "Verify extracted skills and career direction before matching jobs."
+            state_key = "REVIEW_REQUIRED"
         elif not matches:
             profile_badge = "Confirmed"
             next_action = "Explore matching jobs"
             next_view = "Jobs"
             next_hint = "Discover verified roles matching your confirmed competencies."
+            state_key = "PROFILE_CONFIRMED"
         elif not selected_job or suggestions is None:
             profile_badge = "Confirmed"
             next_action = "Improve resume"
-            next_view = "Resume"
+            next_view = "Resume Studio"
             next_hint = "Select a target role and optimize your application bullet points."
+            state_key = "JOBS_FOUND"
         else:
             profile_badge = "Confirmed"
             next_action = "Consult career mentor"
-            next_view = "Mentor"
+            next_view = "Career Mentor"
             next_hint = "Get interview prep frameworks and guidance grounded in verified notes."
+            state_key = "MENTOR_READY"
 
         target_role = None
         if container:
@@ -115,6 +159,7 @@ class AppStateManager:
             target_role = prof.target_role
 
         return {
+            "state_key": state_key,
             "profile_status": profile_badge,
             "target_role": target_role or "Not specified",
             "resume_name": st.session_state.get("uploaded_file_name"),

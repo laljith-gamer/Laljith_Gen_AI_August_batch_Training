@@ -1,16 +1,25 @@
 [theme]
 base = "light"
-primaryColor = "#2563eb"
+primaryColor = "#1d4ed8"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f8fafc"
 textColor = "#0f172a"
 borderColor = "#e2e8f0"
 baseRadius = "8px"
-buttonRadius = "8px"
+buttonRadius = "6px"
 font = "sans-serif"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#f8fafc"
+secondaryBackgroundColor = "#f1f5f9"
+textColor = "#0f172a"
+borderColor = "#e2e8f0"
+primaryColor = "#1d4ed8"
 
 [theme.light]
-primaryColor = "#2563eb"
+primaryColor = "#1d4ed8"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f8fafc"
 textColor = "#0f172a"
@@ -21,19 +30,21 @@ backgroundColor = "#f8fafc"
 secondaryBackgroundColor = "#f1f5f9"
 textColor = "#0f172a"
 borderColor = "#e2e8f0"
+primaryColor = "#1d4ed8"
 
 [theme.dark]
 primaryColor = "#3b82f6"
-backgroundColor = "#0f172a"
-secondaryBackgroundColor = "#1e293b"
+backgroundColor = "#0b0f19"
+secondaryBackgroundColor = "#131b2e"
 textColor = "#f8fafc"
-borderColor = "#334155"
+borderColor = "#24304d"
 
 [theme.dark.sidebar]
-backgroundColor = "#0b1120"
-secondaryBackgroundColor = "#1e293b"
+backgroundColor = "#080c14"
+secondaryBackgroundColor = "#131b2e"
 textColor = "#f8fafc"
-borderColor = "#334155"
+borderColor = "#1e293b"
+primaryColor = "#3b82f6"
 
 [client]
 showErrorDetails = false
