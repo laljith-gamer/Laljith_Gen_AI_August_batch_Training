@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-19T12:30:14.386390",
+  "timestamp": "2026-09-25T09:09:22.527586",
   "retrieval_evaluation": {
     "total_queries": 5,
     "hits": 5,
@@ -59,17 +59,17 @@
     "details": [
       {
         "question": "What is the exact 2029 dental health insurance premium at Acme Widgets?",
-        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
+        "answer": "I don't know based on the available documents.",
         "refused": true
       },
       {
         "question": "Who was appointed VP of Engineering at Wayne Enterprises yesterday?",
-        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
+        "answer": "I don't know based on the available documents.",
         "refused": true
       },
       {
         "question": "What is the cafeteria lunch schedule at Stark Industries?",
-        "answer": "I don't know based on the available documents. The retrieved SmartHire documents do not contain verified information on this topic.",
+        "answer": "I don't know based on the available documents.",
         "refused": true
       }
     ]
@@ -78,7 +78,7 @@
     "test_query": "How should I structure bullet points on my resume?",
     "naive_prompt_characteristic": "Generic advice without document traceability, prone to fabricating metrics.",
     "grounded_prompt_characteristic": "Restricted strictly to the XYZ formula from resume_writing_guide.txt with traceable citations.",
-    "grounded_answer_snippet": "Based on the SmartHire knowledge base:\n\n## Core Principles of High-Impact Tech Resumes\n\n### 1. The Google XYZ Formula for Bullet Points\nStructure every project and experience accomplishment bullet using:\n\"Accomplished [X], as measured by [Y], by doin...",
+    "grounded_answer_snippet": "Based on the retrieved documents, you should structure your resume bullet points using the following guidelines:\n\n### 1. Use the Google XYZ Formula\nEvery project and experience accomplishment bullet should follow this structure:\n**\"Accomplished [X], ...",
     "citations_present": true,
     "citation_sources": [
       "Resume Writing Guide",
@@ -88,16 +88,16 @@
     ]
   },
   "hitl_feedback_metrics": {
-    "total_job_feedback": 22,
-    "job_relevant_count": 22,
+    "total_job_feedback": 31,
+    "job_relevant_count": 31,
     "job_irrelevant_count": 0,
     "job_relevance_rate": 1.0,
-    "total_mentor_feedback": 23,
-    "mentor_helpful_count": 23,
+    "total_mentor_feedback": 31,
+    "mentor_helpful_count": 31,
     "mentor_unhelpful_count": 0,
     "mentor_helpfulness_rate": 1.0,
-    "total_cv_actions": 10,
-    "cv_accepted": 10,
+    "total_cv_actions": 18,
+    "cv_accepted": 18,
     "cv_edited": 0,
     "cv_rejected": 0
   }

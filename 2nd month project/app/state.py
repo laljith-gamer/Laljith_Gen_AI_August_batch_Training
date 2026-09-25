@@ -65,7 +65,6 @@ class AppStateManager:
 
     @classmethod
     def invalidate_downstream(cls, full_reset: bool = False):
-        """Invalidate dependent states when resume or profile changes."""
         st.session_state.job_matches = []
         st.session_state.selected_job_for_cv = None
         st.session_state.cv_suggestions = None
@@ -74,7 +73,6 @@ class AppStateManager:
             st.session_state.extracted_resume_text = ""
             st.session_state.uploaded_file_name = None
             st.session_state.editing_profile = False
-            st.session_state.dynamic_resume_json = None
             cls.set_workflow_state(WorkflowState.NO_RESUME)
 
     @classmethod

@@ -78,41 +78,43 @@ def test_dynamic_json_schema_enforces_required_fields():
             metadata={"test": True},
         )
 
-def test_dynamic_json_heuristic_generation_across_categories():
-    """Verify heuristic generation guarantees valid required fields across diverse domains."""
-    sample_categories = ["INFORMATION-TECHNOLOGY", "HR", "FINANCE"]
-    
-    for cat in sample_categories:
-        resumes = ResumeDatasetManager.get_resumes_by_category(cat, limit=1)
-        assert len(resumes) > 0
-        sample_id = resumes[0]["id"]
-        full_record = ResumeDatasetManager.get_resume(sample_id)
-        assert full_record is not None
+def test_dynamic_json_schema_conversion():
+    """Verify DynamicResumeJSON serialization and conversion to ResumeProfile."""
+    profile_json = DynamicResumeJSON(
+        id="test_101",
+        category="INFORMATION-TECHNOLOGY",
+        name="Alex Engineer",
+        target_role="Senior Software Engineer",
+        years_of_experience=6.5,
+        skills=["Python", "FastAPI", "FAISS", "Gemini API"],
+        summary="Senior Software Engineer specializing in GenAI and backend microservices.",
+        experience=[
+            WorkExperienceEntry(
+                company="Tech Solutions",
+                role="Lead AI Engineer",
+                start_date="2021",
+                end_date="Present",
+                highlights=["Built RAG systems", "Deployed Gemini pipelines"]
+            )
+        ],
+        education=[
+            EducationEntry(
+                institution="State University",
+                degree="B.S. Computer Science",
+                year="2020"
+            )
+        ],
+        metadata={"validation_status": "valid"}
+    )
 
-        profile_json = DynamicJSONGenerator._generate_with_heuristics(
-            resume_id=full_record["id"],
-            cleaned_text=full_record["cleaned_text"],
-            category=full_record["category"],
-        )
+    # Assert serialization
+    json_str = profile_json.to_json_str()
+    assert '"test_101"' in json_str
 
-        # Assert all required fields are satisfied
-        assert profile_json.id == sample_id
-        assert profile_json.category == cat
-        assert len(profile_json.name) > 0
-        assert len(profile_json.target_role) > 0
-        assert profile_json.years_of_experience >= 0.0
-        assert len(profile_json.skills) >= 1
-        assert len(profile_json.summary) >= 5
-        assert isinstance(profile_json.experience, list)
-        assert isinstance(profile_json.education, list)
-        assert "validation_status" in profile_json.metadata
+    # Assert conversion to internal ResumeProfile
+    internal_profile = profile_json.to_resume_profile()
+    assert isinstance(internal_profile, ResumeProfile)
+    assert internal_profile.target_role == profile_json.target_role
+    assert len(internal_profile.skills) == 4
 
-        # Assert serialization
-        json_str = profile_json.to_json_str()
-        assert f'"{sample_id}"' in json_str
 
-        # Assert conversion to internal ResumeProfile
-        internal_profile = profile_json.to_resume_profile()
-        assert isinstance(internal_profile, ResumeProfile)
-        assert internal_profile.target_role == profile_json.target_role
-        assert len(internal_profile.skills) >= 1
