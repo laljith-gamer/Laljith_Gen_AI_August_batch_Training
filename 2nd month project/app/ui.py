@@ -165,12 +165,12 @@ def inject_global_styles(theme_mode: str = "light"):
         color: var(--sh-text) !important;
     }}
 
-    /* Controlled central content area - prevent ultra-wide distortion */
+    /* Controlled central content area - prevent ultra-wide distortion & header overlap */
     .stMain .block-container,
     [data-testid="stMain"] .block-container,
     .stMainBlockContainer {{
         max-width: 1060px !important;
-        padding-top: 1.5rem !important;
+        padding-top: 3.75rem !important;
         padding-bottom: 3.5rem !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
@@ -305,18 +305,80 @@ def inject_global_styles(theme_mode: str = "light"):
         color: var(--sh-text) !important;
     }}
 
-    /* Chat message enhancements */
+    /* =========================================================
+       CHATGPT-INSPIRED CHAT MESSAGE SYSTEM & ANIMATIONS
+       ========================================================= */
+    @keyframes chatFadeIn {{
+        from {{
+            opacity: 0;
+            transform: translateY(8px);
+        }}
+        to {{
+            opacity: 1;
+            transform: translateY(0);
+        }}
+    }}
+
+    @keyframes pulseGlow {{
+        0%, 100% {{ opacity: 0.4; }}
+        50% {{ opacity: 1; }}
+    }}
+
+    /* Base Chat Message Container */
     [data-testid="stChatMessage"] {{
-        background-color: var(--sh-surface-subtle) !important;
-        border: 1px solid var(--sh-border) !important;
-        border-radius: var(--sh-radius) !important;
-        padding: 1rem 1.25rem !important;
-        margin-bottom: 0.75rem !important;
+        animation: chatFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.85rem !important;
+        border-radius: 14px !important;
+        border: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
         color: var(--sh-text) !important;
     }}
 
     [data-testid="stChatMessage"] p {{
         color: var(--sh-text) !important;
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+    }}
+
+    /* User Message Bubble: Distinct ChatGPT-style right-aligned / pill bubble */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
+        background-color: var(--sh-surface-hover) !important;
+        border: 1px solid var(--sh-border-subtle) !important;
+        border-radius: 18px 18px 4px 18px !important;
+        padding: 0.75rem 1.15rem !important;
+        max-width: 86% !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+    }}
+
+    /* Assistant Message Container: Seamless open canvas like ChatGPT */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {{
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0.5rem 0.5rem 0.5rem 0 !important;
+        max-width: 100% !important;
+    }}
+
+    /* Avatar Icons - Modern rounded styling */
+    [data-testid="stChatMessageAvatar"],
+    div[data-testid="stChatMessageAvatar"] {{
+        background-color: var(--sh-surface-muted) !important;
+        border: 1px solid var(--sh-border) !important;
+        border-radius: 50% !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }}
+
+    [data-testid="stChatMessageAvatar"] svg,
+    div[data-testid="stChatMessageAvatar"] svg {{
+        width: 18px !important;
+        height: 18px !important;
+        color: var(--sh-primary) !important;
     }}
 
     /* =========================================================
@@ -586,7 +648,7 @@ def inject_global_styles(theme_mode: str = "light"):
         color: var(--sh-danger) !important;
     }}
 
-    /* Bottom fixed area and chat input */
+    /* Bottom fixed area and chat input container */
     [data-testid="stBottom"],
     .stBottom,
     .stBottom > div,
@@ -597,19 +659,239 @@ def inject_global_styles(theme_mode: str = "light"):
 
     [data-testid="stChatInput"] {{
         background-color: var(--sh-surface) !important;
+        border: 1.5px solid var(--sh-border) !important;
+        border-radius: 16px !important;
+        box-shadow: var(--sh-shadow) !important;
+        padding: 4px 8px !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }}
+
+    [data-testid="stChatInput"]:focus-within {{
+        border-color: var(--sh-primary) !important;
+        box-shadow: 0 0 0 3px var(--sh-primary-subtle), var(--sh-shadow-md) !important;
+    }}
+
+    /* REMOVE NESTED BOX ARTIFACTS: Strip background, borders, and outlines from all inner wrappers and textarea */
+    [data-testid="stChatInput"] *,
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] div[data-baseweb="base-input"],
+    [data-testid="stChatInput"] div[data-baseweb="input"],
+    [data-testid="stChatInput"] [class*="st-emotion-cache"] {{
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+
+    [data-testid="stChatInput"] textarea,
+    [data-testid="stChatInputTextArea"] {{
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        color: var(--sh-text) !important;
+        font-family: var(--sh-font-sans) !important;
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+        resize: none !important;
+        padding: 8px 10px !important;
+    }}
+
+    [data-testid="stChatInput"] textarea::placeholder {{
+        color: var(--sh-text-muted) !important;
+        opacity: 0.75 !important;
+    }}
+
+    /* Send / Submit button inside chat input */
+    [data-testid="stChatInputSubmitButton"],
+    button[data-testid="stChatInputSubmitButton"] {{
+        background-color: var(--sh-primary) !important;
+        color: #ffffff !important;
+        border-radius: 10px !important;
+        border: none !important;
+        width: 36px !important;
+        height: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: transform 0.15s ease, background-color 0.15s ease !important;
+    }}
+
+    [data-testid="stChatInputSubmitButton"]:hover {{
+        background-color: var(--sh-primary-hover) !important;
+        transform: scale(1.05) !important;
+    }}
+
+    [data-testid="stChatInputSubmitButton"] svg {{
+        fill: #ffffff !important;
+        color: #ffffff !important;
+    }}
+
+    [data-testid="stChatInputSubmitButton"]:disabled,
+    [data-testid="stChatInputSubmitButton"][disabled] {{
+        background-color: var(--sh-surface-muted) !important;
+        opacity: 0.4 !important;
+        cursor: not-allowed !important;
+    }}
+
+    /* Attachment (+) button inside chat input */
+    [data-testid="stChatInputFileUploadButton"],
+    button[data-testid="stChatInputFileUploadButton"] {{
+        background: transparent !important;
+        border: none !important;
+        color: var(--sh-text-muted) !important;
+        border-radius: 8px !important;
+        transition: color 0.15s ease, background-color 0.15s ease !important;
+    }}
+
+    [data-testid="stChatInputFileUploadButton"]:hover {{
+        color: var(--sh-primary) !important;
+        background-color: var(--sh-surface-hover) !important;
+    }}
+
+    /* =========================================================
+       POPOVER TRIGGER BUTTONS (History, Memory toolbar)
+       ========================================================= */
+    .stPopover > button,
+    [data-testid="stPopoverButton"],
+    div[data-testid="stPopover"] > button {{
+        background-color: var(--sh-btn-sec-bg) !important;
+        color: var(--sh-btn-sec-color) !important;
+        border: 1px solid var(--sh-btn-sec-border) !important;
+        border-radius: var(--sh-radius) !important;
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        padding: 0.45rem 1rem !important;
+        min-height: 38px !important;
+        transition: all 0.18s ease !important;
+        width: 100% !important;
+    }}
+
+    .stPopover > button *,
+    [data-testid="stPopoverButton"] *,
+    div[data-testid="stPopover"] > button * {{
+        color: var(--sh-btn-sec-color) !important;
+    }}
+
+    .stPopover > button:hover,
+    [data-testid="stPopoverButton"]:hover,
+    div[data-testid="stPopover"] > button:hover {{
+        background-color: var(--sh-btn-sec-hover-bg) !important;
+        border-color: var(--sh-btn-sec-hover-border) !important;
+        color: var(--sh-btn-sec-hover-color) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: var(--sh-shadow) !important;
+    }}
+
+    .stPopover > button:hover *,
+    [data-testid="stPopoverButton"]:hover *,
+    div[data-testid="stPopover"] > button:hover * {{
+        color: var(--sh-btn-sec-hover-color) !important;
+    }}
+
+    /* Popover dropdown panel */
+    .stPopover [data-testid="stPopoverBody"],
+    div[data-baseweb="popover"] > div {{
+        background-color: var(--sh-surface) !important;
         border: 1px solid var(--sh-border) !important;
+        border-radius: var(--sh-radius-lg) !important;
+        box-shadow: var(--sh-shadow-md) !important;
+    }}
+
+    .stPopover [data-testid="stPopoverBody"] *,
+    .stPopover [data-testid="stPopoverBody"] p,
+    .stPopover [data-testid="stPopoverBody"] span,
+    .stPopover [data-testid="stPopoverBody"] label {{
+        color: var(--sh-text) !important;
+    }}
+
+    /* =========================================================
+       CHAT MESSAGES (ChatGPT-style bubbles)
+       ========================================================= */
+    [data-testid="stChatMessage"] {{
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0.75rem 0 !important;
+        margin: 0 !important;
+    }}
+
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {{
+        color: var(--sh-text) !important;
+        font-size: 0.95rem !important;
+        line-height: 1.65 !important;
+    }}
+
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] h3,
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] h4 {{
+        color: var(--sh-text) !important;
+        font-weight: 600 !important;
+        margin-top: 0.8rem !important;
+    }}
+
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] strong {{
+        color: var(--sh-text) !important;
+        font-weight: 600 !important;
+    }}
+
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li {{
+        color: var(--sh-text) !important;
+        margin-bottom: 0.25rem !important;
+    }}
+
+    /* Chat message avatar */
+    [data-testid="stChatMessage"] [data-testid="stChatMessageAvatarCustom"],
+    [data-testid="stChatMessage"] .stChatMessageAvatar {{
+        border-radius: 50% !important;
+    }}
+
+    /* Expander inside chat messages (Sources, Thought process) */
+    [data-testid="stChatMessage"] [data-testid="stExpander"] {{
+        border: 1px solid var(--sh-border-subtle) !important;
+        border-radius: var(--sh-radius) !important;
+        background-color: var(--sh-surface-subtle) !important;
+    }}
+
+    [data-testid="stChatMessage"] [data-testid="stExpander"] summary {{
+        color: var(--sh-text-muted) !important;
+        font-size: 0.85rem !important;
+    }}
+
+    /* Compact status shimmer (Synthesizing...) */
+    [data-testid="stStatusWidget"] {{
+        background-color: var(--sh-surface-subtle) !important;
+        border: 1px solid var(--sh-border-subtle) !important;
         border-radius: var(--sh-radius) !important;
     }}
 
-    [data-testid="stChatInput"] textarea {{
-        background-color: var(--sh-input-bg) !important;
-        color: var(--sh-input-color) !important;
-        font-family: var(--sh-font-sans) !important;
+    /* =========================================================
+       ANIMATED TYPING DOTS (ChatGPT-style loading)
+       ========================================================= */
+    @keyframes sh-typing-dot {{
+        0%, 60%, 100% {{ opacity: 0.3; transform: translateY(0); }}
+        30% {{ opacity: 1; transform: translateY(-4px); }}
     }}
 
-    [data-testid="stChatInput"] button {{
-        color: var(--sh-primary) !important;
+    .sh-typing-dots {{
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+        padding: 8px 0;
     }}
+
+    .sh-typing-dots span {{
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: var(--sh-text-muted);
+        animation: sh-typing-dot 1.2s ease-in-out infinite;
+    }}
+
+    .sh-typing-dots span:nth-child(2) {{ animation-delay: 0.15s; }}
+    .sh-typing-dots span:nth-child(3) {{ animation-delay: 0.3s; }}
 
     /* Tooltips */
     div[data-baseweb="tooltip"],

@@ -60,9 +60,13 @@ def test_career_mentor_renders():
     at.session_state["active_view"] = "Career Mentor"
     at.run()
     assert len(at.exception) == 0
-    # Check starter prompt buttons exist
+    # Verify ChatGPT controls exist (New chat, Think mode, and Chat Input)
     btn_labels = [b.label for b in at.button]
-    assert any("behavioral interviews" in lbl for lbl in btn_labels)
+    assert any("New chat" in lbl for lbl in btn_labels)
+    assert any("Think" in lbl for lbl in btn_labels)
+    assert len(at.chat_input) > 0
+
+
 
 
 def test_evaluation_view_renders():

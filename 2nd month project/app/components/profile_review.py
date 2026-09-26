@@ -157,7 +157,7 @@ def render_profile_review():
 
             dl_base = (st.session_state.get("uploaded_file_name") or "profile").replace(".docx", "").replace(".pdf", "")
             st.download_button(
-                "📥 Download Profile JSON",
+                ":material/download: Download Profile JSON",
                 data=json.dumps(json_data, indent=2),
                 file_name=f"{dl_base}.json",
                 mime="application/json",
@@ -208,7 +208,7 @@ def render_profile_review():
         with cd1:
             target_role = st.text_input(
                 "Target Career Role",
-                value=curr.target_role or "Software Engineer",
+                value=curr.target_role or "",
                 help="The primary position or orientation you are seeking.",
             )
         with cd2:
@@ -321,7 +321,7 @@ def render_profile_review():
 
         dl_base = (st.session_state.get("uploaded_file_name") or "profile").replace(".docx", "").replace(".pdf", "")
         st.download_button(
-            "📥 Download Profile JSON",
+            ":material/download: Download Profile JSON",
             data=json.dumps(json_data, indent=2),
             file_name=f"{dl_base}.json",
             mime="application/json",

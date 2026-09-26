@@ -192,7 +192,7 @@ class SystemEvaluator:
 | Target Role | Retrieved Titles | Hit |
 | :--- | :--- | :--- |
 """ + "\n".join([
-                f"| {d['target_role']} | {', '.join(d['retrieved_titles'][:2])} | {'✅ Yes' if d['hit'] else '❌ No'} |"
+                f"| {d['target_role']} | {', '.join(d['retrieved_titles'][:2])} | {'Yes' if d['hit'] else 'No'} |"
                 for d in retrieval_metrics['details']
             ]) + f"""
 

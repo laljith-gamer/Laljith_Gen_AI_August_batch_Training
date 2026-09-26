@@ -35,12 +35,16 @@ from app.components.mentor_chat import render_mentor_chat
 
 st.set_page_config(
     page_title="SmartHire | Career Intelligence Workspace",
-    page_icon="💼",
+    page_icon=":material/work:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 AppStateManager.initialize_state()
+if "view" in st.query_params:
+    q_view = st.query_params.get("view")
+    if q_view:
+        AppStateManager.set_active_view(q_view)
 active_theme = AppStateManager.get_theme_mode()
 
 # Inject centralized styling tokens and layout rules (theme-aware)
@@ -70,9 +74,11 @@ with st.sidebar:
                 AppStateManager.set_active_view(view_key)
                 st.rerun()
 
+
     st.html('<div class="sh-nav-section-label">WORKFLOW STATUS</div>')
     summary = AppStateManager.get_status_summary()
     render_sidebar_status_widget(summary)
+
 
     st.html('<div class="sh-nav-section-label">TOOLS</div>')
     tools_items = [
@@ -90,7 +96,7 @@ with st.sidebar:
 
     st.html('<div class="sh-nav-section-label">APPEARANCE</div>')
     theme_options = ["Light", "Dark"]
-    theme_display_map = {"Light": "☀️ Light", "Dark": "🌙 Dark"}
+    theme_display_map = {"Light": "Light", "Dark": "Dark"}
 
     def _on_sidebar_theme_changed():
         choice = st.session_state.get("sidebar_theme_choice")
@@ -344,7 +350,7 @@ elif active_view == "Settings":
         st.segmented_control(
             "Appearance Mode",
             options=["Light", "Dark"],
-            format_func=lambda x: f"{'☀️' if x == 'Light' else '🌙'} {x} Mode",
+            format_func=lambda x: f"{x} Mode",
             key="settings_theme_mode_selector",
             on_change=_on_settings_theme_changed,
             label_visibility="collapsed",

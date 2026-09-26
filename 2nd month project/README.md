@@ -11,7 +11,7 @@ SmartHire GenAI is an end-to-end career intelligence portal that transforms cand
 
 ---
 
-## 🌟 Key Highlights & Core Principles
+## Key Highlights & Core Principles
 
 1. **Human-in-the-Loop (HITL) as a First-Class Citizen**:
    - Explicit state machine: `AI_GENERATED` $\to$ `REQUIRES_REVIEW` $\to$ `HUMAN_EDITED` $\to$ `APPROVED` $\to$ `REJECTED`.
@@ -33,7 +33,7 @@ SmartHire GenAI is an end-to-end career intelligence portal that transforms cand
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```text
 Resume Upload (PDF / DOCX)
@@ -100,7 +100,7 @@ Display & Relevance Feedback       │          Reject / Regenerate  │
 
 ---
 
-## 📁 Repository Directory Structure
+## Repository Directory Structure
 
 ```text
 smarthire-genai/
@@ -219,7 +219,7 @@ smarthire-genai/
 
 ---
 
-## ⚡ Quick Start & Installation
+## Quick Start & Installation
 
 ### 1. Prerequisites
 - Python 3.11 or 3.12
@@ -280,7 +280,7 @@ Open your browser at `http://localhost:8501`.
 
 ---
 
-## 📦 External Dataset Acquisition
+## External Dataset Acquisition
 
 SmartHire keeps downloaded third-party datasets under `data/raw/kaggle/` so raw source data stays separate from the application's normalized/demo data.
 
@@ -327,7 +327,7 @@ For source details and storage notes, see `data/raw/kaggle/README.md`.
 
 ---
 
-## 🧪 Automated Testing & Evaluation
+## Automated Testing & Evaluation
 
 ### Run Full Test Suite (24 Tests)
 ```bash
@@ -351,7 +351,7 @@ This benchmarks:
 
 ---
 
-## 🛡️ Guardrails & Prompt Injection Defense
+## Guardrails & Prompt Injection Defense
 
 SmartHire GenAI enforces defense-in-depth:
 1. **Input Classification**: Detects and rejects prompt injection attempts (e.g. *"Ignore all previous instructions"*, *"DAN mode"*, *"Reveal system prompt"*), secret exfiltration (*"Print API key"*), and fraudulent requests (*"Fabricate a degree"*).
@@ -365,7 +365,7 @@ SmartHire GenAI enforces defense-in-depth:
 
 ---
 
-## ☁️ Deployment Guide (Streamlit Community Cloud)
+## Deployment Guide (Streamlit Community Cloud)
 
 1. Push your repository to GitHub (ensure `.env` and `__pycache__` are excluded via `.gitignore`).
 2. Log in to [Streamlit Community Cloud](https://share.streamlit.io/).
@@ -382,5 +382,5 @@ SmartHire GenAI enforces defense-in-depth:
 
 ---
 
-## 📜 License
+## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

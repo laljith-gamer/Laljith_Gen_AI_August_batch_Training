@@ -30,7 +30,7 @@
   3. In `app/components/cv_review.py`, switching target jobs did not clear `cv_suggestions`, remaining stuck on the first job's analysis.
 - **Fix** (2026-09-19):
   1. Stored full chunk text in `metadata.pkl` across all 53 indexed chunks and rebuilt the index.
-  2. Added a "🗑️ Clear Chat" button in the Career Mentor header to start fresh conversations anytime.
+  2. Added a "Clear Chat" button in the Career Mentor header to start fresh conversations anytime.
   3. Wrapped answer generation in error boundaries with user feedback.
   4. Updated CV Studio to automatically reset suggestions when selecting a different target job.
   5. **All 25/25 pytest tests now pass (100%)**.
