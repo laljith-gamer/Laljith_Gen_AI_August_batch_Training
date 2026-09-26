@@ -791,7 +791,8 @@ def inject_global_styles(theme_mode: str = "light"):
     }}
 
     /* Popover dropdown panel */
-    .stPopover [data-testid="stPopoverBody"],
+    [data-testid="stPopoverBody"],
+    div[data-testid="stPopoverBody"],
     div[data-baseweb="popover"] > div {{
         width: 395px !important;
         max-width: min(415px, calc(100vw - 28px)) !important;
@@ -806,11 +807,16 @@ def inject_global_styles(theme_mode: str = "light"):
         overflow-x: hidden !important;
     }}
 
-    .stPopover [data-testid="stPopoverBody"] *,
-    .stPopover [data-testid="stPopoverBody"] p,
-    .stPopover [data-testid="stPopoverBody"] span,
-    .stPopover [data-testid="stPopoverBody"] label {{
+    [data-testid="stPopoverBody"] *,
+    [data-testid="stPopoverBody"] p,
+    [data-testid="stPopoverBody"] span,
+    [data-testid="stPopoverBody"] label {{
         color: var(--sh-text) !important;
+    }}
+
+    /* Reset button constraints inside popovers */
+    [data-testid="stPopoverBody"] div[data-testid="stButton"] button {{
+        min-height: unset !important;
     }}
 
     /* =========================================================

@@ -123,12 +123,17 @@ def render_mentor_chat():
             st.markdown(
                 """
                 <style>
+                /* Tighten vertical rhythm inside popover */
+                [data-testid="stPopoverBody"] > div[data-testid="stVerticalBlock"] {
+                    gap: 6px !important;
+                }
+
                 /* Chat History Header */
                 .mentor-hist-header {
                     display: flex;
                     flex-direction: column;
                     gap: 1px;
-                    margin: 0 0 2px 0;
+                    margin: 0;
                     padding: 0;
                 }
                 .mentor-hist-title {
@@ -137,26 +142,34 @@ def render_mentor_chat():
                     color: #f8fafc !important;
                     letter-spacing: -0.01em !important;
                     line-height: 1.25 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 .mentor-hist-subtitle {
                     font-size: 0.8rem !important;
                     color: #94a3b8 !important;
                     line-height: 1.2 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
 
-                /* Close Ghost Button (Top-Right) */
-                div[class*="st-key-btn_close_history_popover"] {
+                /* Close Ghost Button (Top-Right, aligned with header top line) */
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_close_history_popover"] {
                     display: flex !important;
                     justify-content: flex-end !important;
-                    align-items: center !important;
+                    align-items: flex-start !important;
+                    width: 100% !important;
                 }
-                div[class*="st-key-btn_close_history_popover"] button {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_close_history_popover"] button {
                     background: transparent !important;
                     border: none !important;
                     color: #64748b !important;
-                    height: 28px !important;
-                    width: 28px !important;
-                    min-width: 28px !important;
+                    height: 26px !important;
+                    min-height: 26px !important;
+                    max-height: 26px !important;
+                    width: 26px !important;
+                    min-width: 26px !important;
+                    max-width: 26px !important;
                     padding: 0 !important;
                     border-radius: 6px !important;
                     box-shadow: none !important;
@@ -164,26 +177,28 @@ def render_mentor_chat():
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
+                    margin-top: 1px !important;
                 }
-                div[class*="st-key-btn_close_history_popover"] button:hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_close_history_popover"] button:hover {
                     background: rgba(255, 255, 255, 0.08) !important;
-                    color: #e2e8f0 !important;
+                    color: #f8fafc !important;
                 }
 
                 /* Compact Export Action */
-                div[class*="st-key-btn_export_active_chat"] {
-                    margin: 6px 0 8px 0 !important;
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_export_active_chat"] {
+                    margin: 4px 0 6px 0 !important;
                 }
-                div[class*="st-key-btn_export_active_chat"] button {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_export_active_chat"] button {
                     background: rgba(255, 255, 255, 0.035) !important;
                     border: 1px solid rgba(255, 255, 255, 0.08) !important;
                     color: #cbd5e1 !important;
                     font-size: 0.8rem !important;
                     font-weight: 500 !important;
-                    height: 34px !important;
-                    min-height: 34px !important;
+                    height: 32px !important;
+                    min-height: 32px !important;
+                    max-height: 32px !important;
                     padding: 0 12px !important;
-                    border-radius: 8px !important;
+                    border-radius: 7px !important;
                     box-shadow: none !important;
                     transition: all 0.15s ease !important;
                     display: inline-flex !important;
@@ -191,83 +206,100 @@ def render_mentor_chat():
                     gap: 6px !important;
                     width: auto !important;
                 }
-                div[class*="st-key-btn_export_active_chat"] button:hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_export_active_chat"] button:hover {
                     background: rgba(255, 255, 255, 0.07) !important;
                     border-color: rgba(59, 130, 246, 0.35) !important;
                     color: #ffffff !important;
                 }
-                div[class*="st-key-btn_export_active_chat"] button svg {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_export_active_chat"] button svg {
                     width: 14px !important;
                     height: 14px !important;
                 }
 
-                /* Date Grouping Labels */
-                .mentor-hist-date-label {
+                /* Date Grouping Labels (flush with left alignment) */
+                [data-testid="stPopoverBody"] .mentor-hist-date-label {
                     font-size: 0.72rem !important;
                     font-weight: 600 !important;
                     text-transform: uppercase !important;
                     letter-spacing: 0.06em !important;
                     color: #94a3b8 !important;
-                    margin: 10px 0 4px 4px !important;
+                    margin: 10px 0 6px 0 !important;
+                    padding: 0 !important;
                     user-select: none !important;
                 }
 
                 /* Scrollable List Area */
-                div[class*="st-key-mentor_history_scroll"] {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] {
                     max-height: 44vh !important;
                     overflow-y: auto !important;
                     overflow-x: hidden !important;
                     padding-right: 2px !important;
-                    margin: 4px 0 !important;
+                    margin: 2px 0 !important;
                     scrollbar-width: thin !important;
                     scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
                 }
-                div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar {
                     width: 4px !important;
                 }
-                div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar-thumb {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar-thumb {
                     background: rgba(255, 255, 255, 0.12) !important;
                     border-radius: 4px !important;
                 }
 
                 /* Conversation Row / Card */
-                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"] {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"] {
                     background: rgba(255, 255, 255, 0.025) !important;
                     border: 1px solid rgba(255, 255, 255, 0.06) !important;
                     border-radius: 10px !important;
-                    padding: 2px 4px 2px 8px !important;
+                    padding: 2px 6px 2px 10px !important;
                     margin-bottom: 6px !important;
                     align-items: center !important;
                     transition: all 0.15s ease !important;
+                    height: 40px !important;
+                    min-height: 40px !important;
                 }
-                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:hover {
                     background: rgba(255, 255, 255, 0.055) !important;
                     border-color: rgba(255, 255, 255, 0.12) !important;
                 }
 
                 /* Active Selected Conversation (Subtle blue accent, never saturated red) */
-                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]) {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]) {
                     background: rgba(59, 130, 246, 0.09) !important;
                     border: 1px solid rgba(59, 130, 246, 0.35) !important;
                 }
-                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):hover {
                     background: rgba(59, 130, 246, 0.15) !important;
                     border-color: rgba(59, 130, 246, 0.48) !important;
                 }
 
                 /* Conversation Title Button */
-                div[class*="st-key-hist_load_"] button {
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] {
+                    width: 100% !important;
+                }
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button {
                     background: transparent !important;
                     border: none !important;
-                    padding: 0 4px !important;
-                    height: 38px !important;
-                    min-height: 38px !important;
+                    padding: 0 !important;
+                    height: 36px !important;
+                    min-height: 36px !important;
+                    max-height: 36px !important;
                     text-align: left !important;
                     justify-content: flex-start !important;
+                    align-items: center !important;
                     box-shadow: none !important;
                     width: 100% !important;
                 }
-                div[class*="st-key-hist_load_"] button p {
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button > div,
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button > div > span,
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button div[data-testid="stMarkdownContainer"] {
+                    justify-content: flex-start !important;
+                    text-align: left !important;
+                    align-items: center !important;
+                    width: 100% !important;
+                    display: flex !important;
+                }
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button p {
                     text-align: left !important;
                     overflow: hidden !important;
                     text-overflow: ellipsis !important;
@@ -276,90 +308,107 @@ def render_mentor_chat():
                     font-size: 0.86rem !important;
                     font-weight: 450 !important;
                     margin: 0 !important;
+                    line-height: 36px !important;
+                    width: 100% !important;
                 }
-                div[class*="st-key-hist_load_"] button[kind="primary"] p {
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button[kind="primary"] p {
                     color: #93c5fd !important;
                     font-weight: 500 !important;
                 }
 
                 /* Direct button fallback for kind="primary" */
-                div[class*="st-key-hist_load_"] button[kind="primary"] {
-                    background: rgba(59, 130, 246, 0.12) !important;
-                    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_load_"] button[kind="primary"] {
+                    background: transparent !important;
+                    border: none !important;
                     color: #93c5fd !important;
-                    border-radius: 10px !important;
-                }
-                div[class*="st-key-hist_load_"] button[kind="primary"]:hover {
-                    background: rgba(59, 130, 246, 0.2) !important;
-                    border-color: rgba(59, 130, 246, 0.5) !important;
                 }
 
-                /* Delete Trash Button */
-                div[class*="st-key-hist_del_"] button {
+                /* Delete Trash Button Column & Button */
+                [data-testid="stPopoverBody"] div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"] > div:last-child {
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                    align-items: center !important;
+                }
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_del_"] {
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                    width: 100% !important;
+                }
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_del_"] button {
                     background: transparent !important;
                     border: none !important;
                     color: #64748b !important;
-                    height: 34px !important;
-                    width: 34px !important;
-                    min-width: 34px !important;
+                    height: 30px !important;
+                    min-height: 30px !important;
+                    max-height: 30px !important;
+                    width: 30px !important;
+                    min-width: 30px !important;
+                    max-width: 30px !important;
                     padding: 0 !important;
-                    border-radius: 8px !important;
+                    border-radius: 6px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     box-shadow: none !important;
                     transition: all 0.15s ease !important;
+                    margin: 0 !important;
                 }
-                div[class*="st-key-hist_del_"] button:hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_del_"] button:hover {
                     background: rgba(248, 113, 113, 0.14) !important;
                     color: #f87171 !important;
                 }
-                div[class*="st-key-hist_del_"] button span,
-                div[class*="st-key-hist_del_"] button svg {
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_del_"] button span,
+                [data-testid="stPopoverBody"] div[class*="st-key-hist_del_"] button svg {
                     font-size: 1rem !important;
                     color: inherit !important;
                 }
 
                 /* Clear History Action */
-                .mentor-hist-divider {
-                    border-top: 1px solid rgba(255, 255, 255, 0.07);
-                    margin: 8px 0 4px 0;
+                [data-testid="stPopoverBody"] .mentor-hist-divider {
+                    border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+                    margin: 8px 0 4px 0 !important;
+                    width: 100% !important;
                 }
-                div[class*="st-key-btn_clear_all_chats"] button {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_clear_all_chats"] {
+                    width: 100% !important;
+                }
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_clear_all_chats"] button {
                     background: transparent !important;
                     border: none !important;
                     color: #94a3b8 !important;
                     font-size: 0.8rem !important;
                     font-weight: 500 !important;
-                    height: 30px !important;
-                    min-height: 30px !important;
+                    height: 28px !important;
+                    min-height: 28px !important;
+                    max-height: 28px !important;
                     padding: 0 !important;
                     border-radius: 6px !important;
                     box-shadow: none !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
+                    width: 100% !important;
                     transition: all 0.15s ease !important;
                 }
-                div[class*="st-key-btn_clear_all_chats"] button:hover {
+                [data-testid="stPopoverBody"] div[class*="st-key-btn_clear_all_chats"] button:hover {
                     background: rgba(248, 113, 113, 0.08) !important;
                     color: #f87171 !important;
                 }
 
                 /* Empty state */
-                .mentor-hist-empty {
-                    padding: 24px 12px;
+                [data-testid="stPopoverBody"] .mentor-hist-empty {
+                    padding: 20px 12px;
                     text-align: center;
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
                 }
-                .mentor-hist-empty-title {
+                [data-testid="stPopoverBody"] .mentor-hist-empty-title {
                     color: #cbd5e1;
                     font-size: 0.86rem;
                     font-weight: 500;
                 }
-                .mentor-hist-empty-desc {
+                [data-testid="stPopoverBody"] .mentor-hist-empty-desc {
                     color: #64748b;
                     font-size: 0.76rem;
                 }
@@ -369,7 +418,7 @@ def render_mentor_chat():
             )
 
             # Compact Header: Chat History + Your conversations on Left, Close on Right
-            col_head_text, col_head_close = st.columns([5.2, 0.8], vertical_alignment="center")
+            col_head_text, col_head_close = st.columns([5.3, 0.7], vertical_alignment="top")
             with col_head_text:
                 st.markdown(
                     """
@@ -419,7 +468,7 @@ def render_mentor_chat():
                                 short_title = (s_title[:28] + "...") if len(s_title) > 28 else s_title
                                 is_curr = s_id == st.session_state.mentor_session_id
 
-                                row_col1, row_col2 = st.columns([5.3, 0.9], gap="small", vertical_alignment="center")
+                                row_col1, row_col2 = st.columns([5.4, 0.6], gap="small", vertical_alignment="center")
                                 with row_col1:
                                     btn_type = "primary" if is_curr else "secondary"
                                     if st.button(
