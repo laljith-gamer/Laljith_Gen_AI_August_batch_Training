@@ -384,26 +384,33 @@ elif active_view == "Settings":
             db_stat = MentorDatabaseManager.get_status()
 
             has_secrets = False
+            secret_keys = []
             try:
-                has_secrets = hasattr(st, "secrets") and len(list(st.secrets.keys())) > 0
+                if hasattr(st, "secrets"):
+                    secret_keys = list(st.secrets.keys())
+                    has_secrets = len(secret_keys) > 0
             except Exception:
                 has_secrets = False
 
             gemini_key = getattr(settings, "get_gemini_api_key", lambda: settings.GEMINI_API_KEY)()
             if st.session_state.get("custom_api_key"):
-                key_source = "Session override"
+                key_source = "Session override (active)"
             elif has_secrets and gemini_key:
                 key_source = "Streamlit Cloud Secrets (`st.secrets`)"
             elif gemini_key:
                 key_source = ".env / Environment variable"
             else:
-                key_source = "Not configured"
+                key_source = "Not detected (please configure)"
 
-            st.markdown(f"• **Gemini API Key Source:** `{key_source}`")
+            st.markdown(f"• **Gemini API Key Status:** `{key_source}`")
             st.markdown(f"• **Database Storage Path:** `{db_stat.get('db_path')}`")
             st.markdown(f"• **Persisted Conversations:** `{db_stat.get('sessions_count', 0)} sessions ({db_stat.get('messages_count', 0)} messages)`")
             st.markdown(f"• **Candidate Memories:** `{db_stat.get('memories_count', 0)} facts`")
-            st.markdown(f"• **Streamlit Secrets Active:** `{'Yes' if has_secrets else 'No (using local fallback)'}`")
+            st.markdown(f"• **Streamlit Secrets Active:** `{'Yes' if has_secrets else 'No'}`")
+            if has_secrets:
+                st.markdown(f"• **Detected Secret Keys:** `{', '.join(secret_keys)}`")
+            else:
+                st.info("💡 If you just saved secrets in Streamlit Cloud, please click **'Manage app' (lower right) → 'Reboot'** to restart the server with your secrets.")
         except Exception:
             st.info("Database and secrets initialized successfully.")
 

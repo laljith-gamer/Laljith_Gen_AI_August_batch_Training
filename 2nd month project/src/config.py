@@ -21,36 +21,58 @@ def get_secret(key: str, default: Optional[Any] = None) -> Optional[Any]:
     """
     Retrieve secrets and environment settings seamlessly across Streamlit Cloud
     (st.secrets) and local environment variables (.env / os.environ).
-    Supports top-level keys, lowercase keys, and [database] sections.
-    Safely catches StreamlitSecretNotFoundError when secrets.toml is absent.
+    Searches direct keys, lowercase, uppercase, and all nested sections in st.secrets.
     """
-    # 1. Try Streamlit Secrets if available
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
             try:
-                # Direct key match (e.g. GEMINI_API_KEY, DB_USERNAME, DB_TOKEN)
-                if key in st.secrets:
-                    return st.secrets[key]
-                if key.lower() in st.secrets:
-                    return st.secrets[key.lower()]
+                # 1. Direct dict/attr lookup
+                for candidate_key in [key, key.lower(), key.upper()]:
+                    if candidate_key in st.secrets:
+                        return st.secrets[candidate_key]
+                    if hasattr(st.secrets, "get"):
+                        val = st.secrets.get(candidate_key)
+                        if val is not None:
+                            return val
 
-                # Nested [database] section check
-                if key.startswith("DB_") or key.startswith("db_"):
-                    sub_key = key[3:].lower()
-                    if "database" in st.secrets and isinstance(st.secrets["database"], dict):
-                        if sub_key in st.secrets["database"]:
-                            return st.secrets["database"][sub_key]
-                    if "db" in st.secrets and isinstance(st.secrets["db"], dict):
-                        if sub_key in st.secrets["db"]:
-                            return st.secrets["db"][sub_key]
+                # 2. Search through all sections / tables (e.g., [some_section], [database], etc.)
+                for sec_key in st.secrets:
+                    sec = st.secrets[sec_key]
+                    if isinstance(sec, dict) or hasattr(sec, "get"):
+                        for candidate_key in [key, key.lower(), key.upper()]:
+                            if candidate_key in sec:
+                                return sec[candidate_key]
+                            if hasattr(sec, "get"):
+                                val = sec.get(candidate_key)
+                                if val is not None:
+                                    return val
+
+                # 3. If key starts with DB_ or db_, check subkeys inside database/db section
+                if key.lower().startswith("db_"):
+                    clean_k = key[3:].lower()
+                    for db_sec in ["database", "db"]:
+                        if db_sec in st.secrets and (isinstance(st.secrets[db_sec], dict) or hasattr(st.secrets[db_sec], "get")):
+                            sec = st.secrets[db_sec]
+                            for candidate_sub in [clean_k, clean_k.upper()]:
+                                if candidate_sub in sec:
+                                    return sec[candidate_sub]
+                                if hasattr(sec, "get"):
+                                    val = sec.get(candidate_sub)
+                                    if val is not None:
+                                        return val
             except Exception:
                 pass
     except Exception:
         pass
 
-    # 2. Fall back to os.environ
-    return os.getenv(key, default)
+    # 4. Fall back to os.environ
+    for candidate_env in [key, key.upper(), key.lower()]:
+        env_val = os.getenv(candidate_env)
+        if env_val is not None:
+            return env_val
+
+    return default
 
 
 class Settings:
@@ -63,7 +85,12 @@ class Settings:
     @classmethod
     def get_gemini_api_key(cls) -> Optional[str]:
         """Fetch active Gemini API key from Streamlit secrets, session, or env."""
-        val = get_secret("GEMINI_API_KEY") or get_secret("GOOGLE_API_KEY")
+        val = (
+            get_secret("GEMINI_API_KEY")
+            or get_secret("GOOGLE_API_KEY")
+            or get_secret("gemini_api_key")
+            or get_secret("google_api_key")
+        )
         if val:
             return str(val).strip()
         return None
