@@ -12,8 +12,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Ensure cached modules are refreshed across live reloads
+if "src.config" in sys.modules:
+    try:
+        import importlib
+        importlib.reload(sys.modules["src.config"])
+    except Exception:
+        pass
+
 import streamlit as st
-from src.config import settings, get_secret
+from src.config import settings
 from src.models.enums import WorkflowState
 from src.human_loop.audit import AuditLogger
 from src.human_loop.feedback import FeedbackManager
@@ -371,7 +379,7 @@ elif active_view == "Settings":
             except Exception:
                 has_secrets = False
 
-            gemini_key = get_secret("GEMINI_API_KEY")
+            gemini_key = getattr(settings, "get_gemini_api_key", lambda: settings.GEMINI_API_KEY)()
             if st.session_state.get("custom_api_key"):
                 key_source = "Session override"
             elif has_secrets and gemini_key:
