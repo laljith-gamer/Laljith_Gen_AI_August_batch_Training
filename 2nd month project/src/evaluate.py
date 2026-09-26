@@ -7,7 +7,7 @@ import sys
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
