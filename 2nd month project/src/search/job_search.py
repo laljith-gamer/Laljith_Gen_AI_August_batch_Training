@@ -16,8 +16,10 @@ class JobSearchEngine:
         self,
         embed_manager: Optional[EmbeddingManager] = None,
         vector_store: Optional[FaissVectorStore] = None,
+        api_key: Optional[str] = None,
     ):
-        self.embed_manager = embed_manager or EmbeddingManager()
+        self.api_key = api_key or settings.get_gemini_api_key()
+        self.embed_manager = embed_manager or EmbeddingManager(api_key=self.api_key)
         self.vector_store = vector_store or FaissVectorStore(settings.JOB_INDEX_DIR)
 
     @property

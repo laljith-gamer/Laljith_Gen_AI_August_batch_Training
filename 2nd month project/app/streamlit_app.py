@@ -282,15 +282,25 @@ elif active_view in ("Evaluation", "Evaluation & Telemetry"):
         description="Automated benchmarks measuring retrieval hit rate, hallucination refusal accuracy, and human feedback telemetry.",
     )
 
+    if not AppStateManager.get_api_key():
+        st.warning("⚠️ No Gemini API key detected. Add `GEMINI_API_KEY = \"...\"` to Streamlit Cloud Secrets (App settings → Secrets) or enter it under **Settings**.")
+
     ev_col1, ev_col2 = st.columns([1, 3])
     with ev_col1:
         if st.button("Run full evaluation suite", type="primary", key="btn_run_eval"):
-            from src.evaluate import SystemEvaluator
-            with st.spinner("Running automated benchmarks across subsystems..."):
-                evaluator = SystemEvaluator()
-                evaluator.run_full_evaluation()
-                st.toast("Evaluation suite executed.")
-                st.rerun()
+            effective_key = AppStateManager.get_api_key()
+            if not effective_key:
+                st.error("Gemini API key is required. Please save GEMINI_API_KEY in Streamlit Cloud Secrets or set a session key in Settings.")
+            else:
+                from src.evaluate import SystemEvaluator
+                with st.spinner("Running automated benchmarks across subsystems..."):
+                    try:
+                        evaluator = SystemEvaluator(api_key=effective_key)
+                        evaluator.run_full_evaluation()
+                        st.toast("Evaluation suite executed successfully.")
+                        st.rerun()
+                    except Exception as err:
+                        st.error(f"Evaluation benchmark error: {err}")
 
     report_json_path = settings.PROJECT_ROOT / "reports/evaluation_results.json"
     if report_json_path.exists():

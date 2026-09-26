@@ -27,9 +27,10 @@ REPORTS_DIR = settings.PROJECT_ROOT / "reports"
 class SystemEvaluator:
     """Automated evaluation suite benchmarking retrieval, RAG grounding, and safety."""
 
-    def __init__(self):
-        self.search_engine = JobSearchEngine()
-        self.rag_chain = MentorRAGChain()
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or settings.get_gemini_api_key()
+        self.search_engine = JobSearchEngine(api_key=self.api_key)
+        self.rag_chain = MentorRAGChain(api_key=self.api_key)
 
     def evaluate_retrieval_relevance(self) -> Dict[str, Any]:
         """

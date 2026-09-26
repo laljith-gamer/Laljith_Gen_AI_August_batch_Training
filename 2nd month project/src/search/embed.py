@@ -22,7 +22,7 @@ class EmbeddingManager:
         enable_cache: bool = True,
     ):
         self.model_name = model_name or settings.GEMINI_EMBEDDING_MODEL
-        self.api_key = api_key or settings.GEMINI_API_KEY
+        self.api_key = api_key or settings.get_gemini_api_key()
         self.enable_cache = enable_cache
         self.cache: dict = {}
         self._load_cache()
