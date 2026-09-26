@@ -56,6 +56,11 @@ def get_secret(key: str, default: Optional[Any] = None) -> Optional[Any]:
 class Settings:
 
     @classmethod
+    def get_secret(cls, key: str, default: Optional[Any] = None) -> Optional[Any]:
+        """Safely fetch secret or config from Streamlit Secrets or environment."""
+        return get_secret(key, default)
+
+    @classmethod
     def get_gemini_api_key(cls) -> Optional[str]:
         """Fetch active Gemini API key from Streamlit secrets, session, or env."""
         val = get_secret("GEMINI_API_KEY") or get_secret("GOOGLE_API_KEY")
@@ -139,3 +144,7 @@ def get_gemini_client(api_key: Optional[str] = None):
         )
     from google import genai
     return genai.Client(api_key=effective_key)
+
+
+__all__ = ["Settings", "settings", "get_secret", "get_gemini_client"]
+

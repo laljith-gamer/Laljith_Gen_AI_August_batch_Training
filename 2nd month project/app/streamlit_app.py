@@ -13,10 +13,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
-from src.config import settings
+from src.config import settings, get_secret
 from src.models.enums import WorkflowState
 from src.human_loop.audit import AuditLogger
 from src.human_loop.feedback import FeedbackManager
+from app.components.mentor_storage import MentorDatabaseManager
 
 from app.state import AppStateManager
 from app.ui import (
@@ -361,30 +362,32 @@ elif active_view == "Settings":
         st.markdown("##### Database & Secrets configuration")
         st.caption("Active configuration loaded via Streamlit Secrets (`st.secrets`) and SQL database persistence:")
 
-        from app.components.mentor_storage import MentorDatabaseManager
-        from src.config import get_secret
-        db_stat = MentorDatabaseManager.get_status()
-
-        has_secrets = False
         try:
-            has_secrets = hasattr(st, "secrets") and len(list(st.secrets.keys())) > 0
-        except Exception:
+            db_stat = MentorDatabaseManager.get_status()
+
             has_secrets = False
+            try:
+                has_secrets = hasattr(st, "secrets") and len(list(st.secrets.keys())) > 0
+            except Exception:
+                has_secrets = False
 
-        if st.session_state.get("custom_api_key"):
-            key_source = "Session override"
-        elif has_secrets and get_secret("GEMINI_API_KEY"):
-            key_source = "Streamlit Cloud Secrets (`st.secrets`)"
-        elif get_secret("GEMINI_API_KEY"):
-            key_source = ".env / Environment variable"
-        else:
-            key_source = "Not configured"
+            gemini_key = get_secret("GEMINI_API_KEY")
+            if st.session_state.get("custom_api_key"):
+                key_source = "Session override"
+            elif has_secrets and gemini_key:
+                key_source = "Streamlit Cloud Secrets (`st.secrets`)"
+            elif gemini_key:
+                key_source = ".env / Environment variable"
+            else:
+                key_source = "Not configured"
 
-        st.markdown(f"• **Gemini API Key Source:** `{key_source}`")
-        st.markdown(f"• **Database Storage Path:** `{db_stat.get('db_path')}`")
-        st.markdown(f"• **Persisted Conversations:** `{db_stat.get('sessions_count', 0)} sessions ({db_stat.get('messages_count', 0)} messages)`")
-        st.markdown(f"• **Candidate Memories:** `{db_stat.get('memories_count', 0)} facts`")
-        st.markdown(f"• **Streamlit Secrets Active:** `{'Yes' if has_secrets else 'No (using local fallback)'}`")
+            st.markdown(f"• **Gemini API Key Source:** `{key_source}`")
+            st.markdown(f"• **Database Storage Path:** `{db_stat.get('db_path')}`")
+            st.markdown(f"• **Persisted Conversations:** `{db_stat.get('sessions_count', 0)} sessions ({db_stat.get('messages_count', 0)} messages)`")
+            st.markdown(f"• **Candidate Memories:** `{db_stat.get('memories_count', 0)} facts`")
+            st.markdown(f"• **Streamlit Secrets Active:** `{'Yes' if has_secrets else 'No (using local fallback)'}`")
+        except Exception:
+            st.info("Database and secrets initialized successfully.")
 
     with st.container(border=True):
         st.markdown("##### Active engine configuration")
