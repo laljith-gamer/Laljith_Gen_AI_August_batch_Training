@@ -3,9 +3,10 @@ Interactive AI Career Mentor Chat Component inspired by modern ChatGPT canvas.
 Features:
 - Minimalist hero: "What's on the agenda today?" with zero canned prompt clutter
 - Deep reasoning toggle: "Think" with Streamlit compact status ("Thought for N seconds")
-- ChatGPT-style Browser IndexedDB History (Today, Previous 7 Days, Older) with + New Chat
-- ChatGPT-style Candidate Memory (persisted in IndexedDB and automatically populated from resume)
+- ChatGPT-style SQL Database History (Today, Previous 7 Days, Older) with + New Chat
+- ChatGPT-style Candidate Memory (persisted in SQL database and automatically populated from resume)
 - Automatic resume data extraction + native file attachment in chat input
+- Backed by persistent SQL database (configured via Streamlit Secrets / st.secrets)
 """
 
 import time
@@ -25,7 +26,7 @@ from src.parsing.resume_parser import parse_resume
 from src.models.enums import WorkflowState
 from app.state import AppStateManager
 from app.ui import render_badge
-from app.components.mentor_storage import MentorIndexedDBManager
+from app.components.mentor_storage import MentorDatabaseManager
 from app.components.mentor_memory import MentorMemoryManager
 
 logger = logging.getLogger(__name__)
@@ -64,99 +65,67 @@ def render_mentor_chat():
         st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
 
     if "mentor_chat_history" not in st.session_state:
-        st.session_state.mentor_chat_history = []
+        # Load existing messages for active session from database if available
+        loaded = MentorDatabaseManager.load_session(st.session_state.mentor_session_id)
+        st.session_state.mentor_chat_history = loaded
 
     if "mentor_think_mode" not in st.session_state:
         st.session_state.mentor_think_mode = False
 
-    if "mentor_pending_action" not in st.session_state:
-        st.session_state.mentor_pending_action = None
-
-    if "mentor_saved_sessions_cache" not in st.session_state:
-        st.session_state.mentor_saved_sessions_cache = []
-
     # Extract candidate context automatically from uploaded resume
     candidate_ctx = CandidateContextManager.extract_from_session_state(st.session_state)
     has_resume = candidate_ctx.get("has_resume", False)
+    cand_name = candidate_ctx.get("name", "Candidate")
+    cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
 
-    # Initialize ChatGPT-style candidate memories
+    # Initialize ChatGPT-style candidate memories from database or context
     MentorMemoryManager.initialize_memories(candidate_ctx)
     memories = MentorMemoryManager.get_memories()
 
-    # 2. Browser IndexedDB Storage Engine (CCv2 bridge)
-    action_override = None
-    action_payload = None
-    if st.session_state.mentor_pending_action:
-        pending = st.session_state.mentor_pending_action
-        action_override = pending.get("action")
-        action_payload = pending.get("payload")
-        st.session_state.mentor_pending_action = None
+    # 2. Fetch saved sessions from database
+    saved_sessions = MentorDatabaseManager.list_sessions()
 
-    storage_result = MentorIndexedDBManager.render_storage_toolbar(
-        active_session_id=st.session_state.mentor_session_id,
-        messages=st.session_state.mentor_chat_history,
-        candidate_summary=candidate_ctx,
-        action_override=action_override,
-        action_payload=action_payload,
-        key="mentor_idb_sync_bar",
-    )
-
-    # Reactive synchronization from IndexedDB
-    if storage_result:
-        # Check for restored session payload
-        restored = getattr(storage_result, "restore_session_payload", None)
-        if restored and isinstance(restored, dict) and "messages" in restored:
-            st.session_state.mentor_chat_history = restored["messages"]
-            if restored.get("id"):
-                st.session_state.mentor_session_id = restored["id"]
-            st.toast(f"Switched to: '{restored.get('title', 'Saved Chat')}'")
-            st.rerun()
-
-        # Check for clear trigger
-        if getattr(storage_result, "cleared_storage_trigger", None):
-            st.session_state.mentor_chat_history = []
-            st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
-            st.session_state.mentor_saved_sessions_cache = []
-            st.toast("Browser chat history cleared.")
-            st.rerun()
-
-        # Update cached session list and memories if provided by component state
-        saved_list = getattr(storage_result, "saved_sessions", None)
-        if isinstance(saved_list, list) and saved_list:
-            st.session_state.mentor_saved_sessions_cache = saved_list
-
-        db_memories = getattr(storage_result, "stored_memories", None)
-        if isinstance(db_memories, list) and db_memories:
-            MentorMemoryManager.sync_from_indexeddb(db_memories)
-
-    # 3. Top Action Toolbar (History + New Chat + Think + Memory)
+    # 3. Top Action Toolbar (History + New Chat + Think + Memory + DB Status)
     col_hist, col_new, col_think, col_mem = st.columns([1.2, 1, 1, 1.2])
 
     with col_new:
-        if st.button("＋ New chat", key="btn_mentor_new_chat", type="secondary", use_container_width=True, help="Start a fresh conversation"):
+        if st.button("＋ New chat", key="btn_mentor_new_chat", type="secondary", width="stretch", help="Start a fresh conversation"):
+            new_id = f"session_{int(time.time() * 1000)}"
             st.session_state.mentor_chat_history = []
-            st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
+            st.session_state.mentor_session_id = new_id
             st.toast("Started fresh conversation.")
             st.rerun()
 
     with col_think:
         think_active = st.session_state.get("mentor_think_mode", False)
         think_type = "primary" if think_active else "secondary"
-        if st.button(":material/psychology: Think", key="btn_mentor_think_toggle", type=think_type, use_container_width=True, help="Toggle deep reasoning mode"):
+        if st.button(":material/psychology: Think", key="btn_mentor_think_toggle", type=think_type, width="stretch", help="Toggle deep reasoning mode"):
             st.session_state.mentor_think_mode = not think_active
             st.toast(f"Deep reasoning mode: {'ON' if not think_active else 'OFF'}")
             st.rerun()
 
     with col_hist:
         # History Popover (Grouped by Today, 7 Days, Older)
-        saved_sessions = st.session_state.mentor_saved_sessions_cache
         hist_label = f":material/history: History ({len(saved_sessions)})" if saved_sessions else ":material/history: History"
-        with st.popover(hist_label, width="stretch", help="Browse and restore saved chat history from IndexedDB"):
+        with st.popover(hist_label, width="stretch", help="Browse and restore saved chat history from database"):
             st.markdown("##### Chat History")
-            st.caption("Conversations are securely stored inside your browser's IndexedDB.")
+            st.caption("Conversations are securely persisted in database storage.")
+
+            # Current active session actions
+            if st.session_state.mentor_chat_history:
+                export_json = MentorDatabaseManager.export_session_json(st.session_state.mentor_session_id)
+                st.download_button(
+                    ":material/download: Export chat (JSON)",
+                    data=export_json,
+                    file_name=f"mentor_chat_{st.session_state.mentor_session_id}.json",
+                    mime="application/json",
+                    key="btn_export_active_chat",
+                    width="stretch",
+                )
+                st.divider()
 
             if not saved_sessions:
-                st.info("No saved conversations found in browser storage yet. Start chatting to save automatically!")
+                st.info("No saved conversations in database yet. Start chatting to save automatically!")
             else:
                 grouped = _group_sessions_by_date(saved_sessions)
                 for group_name, sess_list in grouped.items():
@@ -165,7 +134,7 @@ def render_mentor_chat():
                         for s in sess_list:
                             s_id = s.get("id")
                             s_title = s.get("title") or "Career Discussion"
-                            short_title = (s_title[:28] + "...") if len(s_title) > 28 else s_title
+                            short_title = (s_title[:26] + "...") if len(s_title) > 26 else s_title
                             is_curr = s_id == st.session_state.mentor_session_id
 
                             row_col1, row_col2 = st.columns([4, 1])
@@ -176,26 +145,29 @@ def render_mentor_chat():
                                     key=f"hist_load_{s_id}",
                                     type=btn_type,
                                     help=f"{s_title}\n({s.get('message_count', 0)} messages)",
+                                    width="stretch",
                                 ):
-                                    st.session_state.mentor_pending_action = {
-                                        "action": "load_session",
-                                        "payload": {"session_id": s_id},
-                                    }
+                                    msgs = MentorDatabaseManager.load_session(s_id)
+                                    st.session_state.mentor_session_id = s_id
+                                    st.session_state.mentor_chat_history = msgs
+                                    st.toast(f"Loaded: '{short_title}'")
                                     st.rerun()
                             with row_col2:
-                                if st.button(":material/delete:", key=f"hist_del_{s_id}", help="Delete this chat from browser"):
-                                    st.session_state.mentor_pending_action = {
-                                        "action": "delete_session",
-                                        "payload": {"session_id": s_id},
-                                    }
-                                    st.session_state.mentor_saved_sessions_cache = [
-                                        item for item in saved_sessions if item.get("id") != s_id
-                                    ]
+                                if st.button(":material/delete:", key=f"hist_del_{s_id}", help="Delete this chat from database"):
+                                    MentorDatabaseManager.delete_session(s_id)
                                     if s_id == st.session_state.mentor_session_id:
                                         st.session_state.mentor_chat_history = []
                                         st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
                                     st.toast("Conversation deleted.")
                                     st.rerun()
+
+                st.divider()
+                if st.button("Clear all chat history", key="btn_clear_all_chats", type="secondary", width="stretch"):
+                    MentorDatabaseManager.clear_all_sessions()
+                    st.session_state.mentor_chat_history = []
+                    st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
+                    st.toast("Database chat history cleared.")
+                    st.rerun()
 
     with col_mem:
         # Memory Popover (ChatGPT-style Memory)
@@ -203,7 +175,7 @@ def render_mentor_chat():
         mem_count_label = f":material/psychology: Memory ({len(active_mems)})" if active_mems else ":material/psychology: Memory"
         with st.popover(mem_count_label, width="stretch", help="Manage persistent candidate facts remembered across chats"):
             st.markdown("##### Candidate Memory")
-            st.caption("The mentor retains these verified facts across sessions to personalize career guidance.")
+            st.caption("Facts stored in database to personalize career guidance across sessions.")
 
             if not active_mems:
                 st.info("No active memories recorded. Attach a resume via chat (+) to save facts automatically.")
@@ -224,21 +196,17 @@ def render_mentor_chat():
                 placeholder="e.g., Prefers remote roles, aiming for $220k+",
                 key="input_new_memory_fact",
             )
-            if st.button("Save to Memory", key="btn_save_custom_mem") and new_mem_input:
+            if st.button("Save to Memory", key="btn_save_custom_mem", width="stretch") and new_mem_input:
                 MentorMemoryManager.add_memory(new_mem_input)
-                # Sync to IndexedDB
-                st.session_state.mentor_pending_action = {
-                    "action": "save_memory",
-                    "payload": {
-                        "memory_item": {
-                            "key": f"mem_{int(time.time() * 1000)}",
-                            "fact": new_mem_input,
-                            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                        }
-                    },
-                }
-                st.toast("Memory updated.")
+                st.toast("Memory saved to database.")
                 st.rerun()
+
+            if active_mems:
+                st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
+                if st.button("Clear all memories", key="btn_clear_all_memories", type="secondary", width="stretch"):
+                    MentorMemoryManager.clear_memories()
+                    st.toast("Candidate memories cleared from database.")
+                    st.rerun()
 
     # 4. Minimalist ChatGPT Hero (When conversation is empty)
     chat_history: List[Dict[str, Any]] = st.session_state.mentor_chat_history
@@ -257,6 +225,9 @@ def render_mentor_chat():
             <div style="display: flex; gap: 0.6rem; align-items: center; justify-content: center; margin-top: 1.4rem;">
                 <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 500; background: var(--sh-surface, rgba(148,163,184,0.1)); border: 1px solid var(--sh-border, rgba(148,163,184,0.2)); color: var(--sh-text-muted, #94a3b8);">
                     {resume_status_text}
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 500; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981;">
+                    ● Database Synced
                 </span>
             </div>
         </div>
@@ -310,7 +281,6 @@ def render_mentor_chat():
     )
 
     if prompt_submission:
-        # Extract text and files from submission
         user_text = ""
         attached_files = []
 
@@ -335,8 +305,10 @@ def render_mentor_chat():
                 AppStateManager.set_workflow_state(WorkflowState.PROFILE_REVIEW)
                 AppStateManager.invalidate_downstream()
 
-                # Refresh candidate context & memories
+                # Refresh candidate context & memories in database
                 candidate_ctx = CandidateContextManager.extract_from_session_state(st.session_state)
+                cand_name = candidate_ctx.get("name", "Candidate")
+                cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
                 for init_mem in CandidateContextManager.get_initial_memories(candidate_ctx):
                     MentorMemoryManager.add_memory(init_mem)
 
@@ -350,19 +322,29 @@ def render_mentor_chat():
             user_text = f"I've attached my resume ({attached_files[0].name}). Please analyze my background, strengths, and target career trajectory."
 
         if user_text:
-            # Append user message
+            session_id = st.session_state.mentor_session_id
+            now_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+            # Append user message to state and persist to database
             st.session_state.mentor_chat_history.append({
                 "role": "user",
                 "content": user_text,
-                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "timestamp": now_ts,
             })
+            MentorDatabaseManager.save_message(
+                session_id=session_id,
+                role="user",
+                content=user_text,
+                candidate_name=cand_name,
+                target_role=cand_role,
+            )
+
             with st.chat_message("user", avatar=":material/account_circle:"):
                 st.markdown(user_text)
 
             # Generate AI response with typing indicator
             with st.chat_message("assistant", avatar=":material/auto_awesome:"):
                 rag_chain = MentorRAGChain(api_key=AppStateManager.get_api_key())
-                t_start = time.time()
 
                 # Show animated typing dots while generating
                 typing_placeholder = st.empty()
@@ -401,7 +383,7 @@ def render_mentor_chat():
                             if c.snippet:
                                 st.caption(f"Excerpt: *\"{c.snippet}...\"*")
 
-                # Store assistant response in history
+                # Store assistant response in history and persist to database
                 citations_dict = [c.model_dump() for c in response.citations]
                 st.session_state.mentor_chat_history.append({
                     "role": "assistant",
@@ -409,8 +391,18 @@ def render_mentor_chat():
                     "question": user_text,
                     "thinking": response.thinking,
                     "citations": citations_dict,
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "timestamp": now_ts,
                 })
+
+                MentorDatabaseManager.save_message(
+                    session_id=session_id,
+                    role="assistant",
+                    content=response.answer,
+                    thinking=response.thinking,
+                    citations=citations_dict,
+                    candidate_name=cand_name,
+                    target_role=cand_role,
+                )
 
                 # Autonomous ChatGPT-style candidate memory extraction
                 added_mems = MentorMemoryManager.process_turn_autonomously(
@@ -419,25 +411,14 @@ def render_mentor_chat():
                     api_key=AppStateManager.get_api_key(),
                 )
                 if added_mems:
-                    st.toast(f"Remembered {len(added_mems)} new fact(s).")
-                    for mem in added_mems:
-                        st.session_state.mentor_pending_action = {
-                            "action": "save_memory",
-                            "payload": {
-                                "memory_item": {
-                                    "key": f"mem_{int(time.time() * 1000)}",
-                                    "fact": mem,
-                                    "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                                }
-                            },
-                        }
+                    st.toast(f"Remembered {len(added_mems)} new fact(s) in database.")
 
                 AuditLogger.log_event("MENTOR_QUERY_ANSWERED", "AI", "SUCCESS", {
                     "question": user_text,
                     "is_grounded": response.is_grounded,
                     "refusal": response.refusal,
                     "citations_count": len(response.citations),
-                    "session_id": st.session_state.mentor_session_id,
+                    "session_id": session_id,
                 })
                 st.rerun()
 

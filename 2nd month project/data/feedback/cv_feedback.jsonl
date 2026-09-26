@@ -24,3 +24,5 @@
 {"timestamp": "2026-09-25T18:46:54.631639", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-25T20:02:41.296571", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-25T20:04:02.603976", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-26T11:39:34.102513", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-26T11:46:27.895652", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}

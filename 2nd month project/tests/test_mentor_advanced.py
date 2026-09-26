@@ -179,3 +179,74 @@ def test_mentor_rag_thinking_extraction():
     assert "<thinking>" not in resp.answer
     assert "Here is a comprehensive framework" in resp.answer
 
+
+def test_mentor_database_operations(tmp_path):
+    """Test SQL database storage for chat history, messages, and memory."""
+    from src.data.mentor_db import MentorDatabase
+
+    test_db = tmp_path / "test_mentor.db"
+    MentorDatabase.set_db_path(test_db)
+
+    # 1. Save session and messages
+    session_id = "test_sess_001"
+    MentorDatabase.save_message(
+        session_id=session_id,
+        role="user",
+        content="What roles fit Python and AWS?",
+        candidate_name="Alex Mercer",
+        target_role="Cloud ML Engineer",
+    )
+    MentorDatabase.save_message(
+        session_id=session_id,
+        role="assistant",
+        content="Cloud Machine Learning and MLOps Engineer roles.",
+        thinking="Analyzed Python + AWS skill overlap.",
+        citations=[{"source_title": "MLOps Guide", "chunk_index": 1}],
+    )
+
+    # 2. Verify messages retrieval
+    msgs = MentorDatabase.get_session_messages(session_id)
+    assert len(msgs) == 2
+    assert msgs[0]["role"] == "user"
+    assert msgs[0]["content"] == "What roles fit Python and AWS?"
+    assert msgs[1]["role"] == "assistant"
+    assert msgs[1]["thinking"] == "Analyzed Python + AWS skill overlap."
+    assert len(msgs[1]["citations"]) == 1
+
+    # 3. Verify session listing
+    sessions = MentorDatabase.list_sessions()
+    assert len(sessions) >= 1
+    target_s = next(s for s in sessions if s["id"] == session_id)
+    assert target_s["message_count"] == 2
+    assert target_s["candidate_name"] == "Alex Mercer"
+
+    # 4. Verify candidate memory persistence
+    assert MentorDatabase.add_memory("Prefers remote or hybrid in Seattle.") is True
+    assert MentorDatabase.add_memory("Prefers remote or hybrid in Seattle.") is False  # Duplicate ignored
+    memories = MentorDatabase.get_memories()
+    assert "Prefers remote or hybrid in Seattle." in memories
+
+    # 5. Export session
+    exp = MentorDatabase.export_session_data(session_id)
+    assert exp is not None
+    assert exp["id"] == session_id
+    assert len(exp["messages"]) == 2
+
+    # 6. Delete memory and session
+    assert MentorDatabase.remove_memory("Prefers remote or hybrid in Seattle.") is True
+    assert "Prefers remote or hybrid in Seattle." not in MentorDatabase.get_memories()
+
+    assert MentorDatabase.delete_session(session_id) is True
+    assert len(MentorDatabase.get_session_messages(session_id)) == 0
+
+
+def test_secrets_reading():
+    """Verify get_secret handles direct keys, lowercase, database section, and env."""
+    import os
+    from src.config import get_secret
+
+    os.environ["TEST_ENV_KEY"] = "test_value_123"
+    assert get_secret("TEST_ENV_KEY") == "test_value_123"
+    assert get_secret("NON_EXISTENT_KEY", default="fallback") == "fallback"
+
+

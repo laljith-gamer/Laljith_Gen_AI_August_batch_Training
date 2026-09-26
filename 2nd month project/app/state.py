@@ -177,4 +177,4 @@ class AppStateManager:
         if custom:
             return custom
         from src.config import settings
-        return settings.GEMINI_API_KEY
+        return settings.get_gemini_api_key()

@@ -30,6 +30,8 @@ env/
 .env
 .env.local
 *.key
+.streamlit/secrets.toml
+*.db
 
 # Vector stores & cache artifacts
 vectorstore/jobs/*.faiss
