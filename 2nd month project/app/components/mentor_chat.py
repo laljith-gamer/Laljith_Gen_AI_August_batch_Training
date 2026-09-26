@@ -33,9 +33,18 @@ logger = logging.getLogger(__name__)
 
 
 def _group_sessions_by_date(sessions: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    """Group saved sessions into ChatGPT-style buckets: Today, Previous 7 Days, Older."""
+    """Group saved sessions into ChatGPT-style buckets: Today, Yesterday, Previous 7 days, Older."""
     now = datetime.datetime.now(datetime.timezone.utc)
-    groups: Dict[str, List[Dict[str, Any]]] = {"Today": [], "Previous 7 Days": [], "Older": []}
+    today_date = now.date()
+    yesterday_date = today_date - datetime.timedelta(days=1)
+    seven_days_ago = today_date - datetime.timedelta(days=7)
+
+    groups: Dict[str, List[Dict[str, Any]]] = {
+        "Today": [],
+        "Yesterday": [],
+        "Previous 7 days": [],
+        "Older": [],
+    }
 
     for s in sessions:
         up_str = s.get("updated_at")
@@ -44,11 +53,13 @@ def _group_sessions_by_date(sessions: List[Dict[str, Any]]) -> Dict[str, List[Di
             continue
         try:
             dt = datetime.datetime.fromisoformat(up_str.replace("Z", "+00:00"))
-            delta = (now - dt).total_seconds()
-            if delta < 86400 and dt.date() == now.date():
+            s_date = dt.date()
+            if s_date == today_date:
                 groups["Today"].append(s)
-            elif delta < 7 * 86400:
-                groups["Previous 7 Days"].append(s)
+            elif s_date == yesterday_date:
+                groups["Yesterday"].append(s)
+            elif s_date >= seven_days_ago:
+                groups["Previous 7 days"].append(s)
             else:
                 groups["Older"].append(s)
         except Exception:
@@ -105,64 +116,336 @@ def render_mentor_chat():
             st.rerun()
 
     with col_hist:
-        # History Popover (Grouped by Today, 7 Days, Older)
+        # History Popover (Grouped by Today, Yesterday, Previous 7 days, Older)
         hist_label = f":material/history: History ({len(saved_sessions)})" if saved_sessions else ":material/history: History"
         with st.popover(hist_label, width="stretch", help="Browse and restore saved chat history from database"):
-            st.markdown("##### Chat History")
-            st.caption("Conversations are securely persisted in database storage.")
+            # Inject Scoped CSS for Chat History Popover
+            st.markdown(
+                """
+                <style>
+                /* Chat History Header */
+                .mentor-hist-header {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1px;
+                    margin: 0 0 2px 0;
+                    padding: 0;
+                }
+                .mentor-hist-title {
+                    font-size: 1.15rem !important;
+                    font-weight: 600 !important;
+                    color: #f8fafc !important;
+                    letter-spacing: -0.01em !important;
+                    line-height: 1.25 !important;
+                }
+                .mentor-hist-subtitle {
+                    font-size: 0.8rem !important;
+                    color: #94a3b8 !important;
+                    line-height: 1.2 !important;
+                }
 
-            # Current active session actions
+                /* Close Ghost Button (Top-Right) */
+                div[class*="st-key-btn_close_history_popover"] {
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                    align-items: center !important;
+                }
+                div[class*="st-key-btn_close_history_popover"] button {
+                    background: transparent !important;
+                    border: none !important;
+                    color: #64748b !important;
+                    height: 28px !important;
+                    width: 28px !important;
+                    min-width: 28px !important;
+                    padding: 0 !important;
+                    border-radius: 6px !important;
+                    box-shadow: none !important;
+                    transition: all 0.15s ease !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                div[class*="st-key-btn_close_history_popover"] button:hover {
+                    background: rgba(255, 255, 255, 0.08) !important;
+                    color: #e2e8f0 !important;
+                }
+
+                /* Compact Export Action */
+                div[class*="st-key-btn_export_active_chat"] {
+                    margin: 6px 0 8px 0 !important;
+                }
+                div[class*="st-key-btn_export_active_chat"] button {
+                    background: rgba(255, 255, 255, 0.035) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    color: #cbd5e1 !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 500 !important;
+                    height: 34px !important;
+                    min-height: 34px !important;
+                    padding: 0 12px !important;
+                    border-radius: 8px !important;
+                    box-shadow: none !important;
+                    transition: all 0.15s ease !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    gap: 6px !important;
+                    width: auto !important;
+                }
+                div[class*="st-key-btn_export_active_chat"] button:hover {
+                    background: rgba(255, 255, 255, 0.07) !important;
+                    border-color: rgba(59, 130, 246, 0.35) !important;
+                    color: #ffffff !important;
+                }
+                div[class*="st-key-btn_export_active_chat"] button svg {
+                    width: 14px !important;
+                    height: 14px !important;
+                }
+
+                /* Date Grouping Labels */
+                .mentor-hist-date-label {
+                    font-size: 0.72rem !important;
+                    font-weight: 600 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.06em !important;
+                    color: #94a3b8 !important;
+                    margin: 10px 0 4px 4px !important;
+                    user-select: none !important;
+                }
+
+                /* Scrollable List Area */
+                div[class*="st-key-mentor_history_scroll"] {
+                    max-height: 44vh !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    padding-right: 2px !important;
+                    margin: 4px 0 !important;
+                    scrollbar-width: thin !important;
+                    scrollbar-color: rgba(255, 255, 255, 0.12) transparent !important;
+                }
+                div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar {
+                    width: 4px !important;
+                }
+                div[class*="st-key-mentor_history_scroll"]::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.12) !important;
+                    border-radius: 4px !important;
+                }
+
+                /* Conversation Row / Card */
+                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"] {
+                    background: rgba(255, 255, 255, 0.025) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+                    border-radius: 10px !important;
+                    padding: 2px 4px 2px 8px !important;
+                    margin-bottom: 6px !important;
+                    align-items: center !important;
+                    transition: all 0.15s ease !important;
+                }
+                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:hover {
+                    background: rgba(255, 255, 255, 0.055) !important;
+                    border-color: rgba(255, 255, 255, 0.12) !important;
+                }
+
+                /* Active Selected Conversation (Subtle blue accent, never saturated red) */
+                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]) {
+                    background: rgba(59, 130, 246, 0.09) !important;
+                    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+                }
+                div[class*="st-key-mentor_history_scroll"] div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]):hover {
+                    background: rgba(59, 130, 246, 0.15) !important;
+                    border-color: rgba(59, 130, 246, 0.48) !important;
+                }
+
+                /* Conversation Title Button */
+                div[class*="st-key-hist_load_"] button {
+                    background: transparent !important;
+                    border: none !important;
+                    padding: 0 4px !important;
+                    height: 38px !important;
+                    min-height: 38px !important;
+                    text-align: left !important;
+                    justify-content: flex-start !important;
+                    box-shadow: none !important;
+                    width: 100% !important;
+                }
+                div[class*="st-key-hist_load_"] button p {
+                    text-align: left !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
+                    color: #e2e8f0 !important;
+                    font-size: 0.86rem !important;
+                    font-weight: 450 !important;
+                    margin: 0 !important;
+                }
+                div[class*="st-key-hist_load_"] button[kind="primary"] p {
+                    color: #93c5fd !important;
+                    font-weight: 500 !important;
+                }
+
+                /* Direct button fallback for kind="primary" */
+                div[class*="st-key-hist_load_"] button[kind="primary"] {
+                    background: rgba(59, 130, 246, 0.12) !important;
+                    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+                    color: #93c5fd !important;
+                    border-radius: 10px !important;
+                }
+                div[class*="st-key-hist_load_"] button[kind="primary"]:hover {
+                    background: rgba(59, 130, 246, 0.2) !important;
+                    border-color: rgba(59, 130, 246, 0.5) !important;
+                }
+
+                /* Delete Trash Button */
+                div[class*="st-key-hist_del_"] button {
+                    background: transparent !important;
+                    border: none !important;
+                    color: #64748b !important;
+                    height: 34px !important;
+                    width: 34px !important;
+                    min-width: 34px !important;
+                    padding: 0 !important;
+                    border-radius: 8px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    box-shadow: none !important;
+                    transition: all 0.15s ease !important;
+                }
+                div[class*="st-key-hist_del_"] button:hover {
+                    background: rgba(248, 113, 113, 0.14) !important;
+                    color: #f87171 !important;
+                }
+                div[class*="st-key-hist_del_"] button span,
+                div[class*="st-key-hist_del_"] button svg {
+                    font-size: 1rem !important;
+                    color: inherit !important;
+                }
+
+                /* Clear History Action */
+                .mentor-hist-divider {
+                    border-top: 1px solid rgba(255, 255, 255, 0.07);
+                    margin: 8px 0 4px 0;
+                }
+                div[class*="st-key-btn_clear_all_chats"] button {
+                    background: transparent !important;
+                    border: none !important;
+                    color: #94a3b8 !important;
+                    font-size: 0.8rem !important;
+                    font-weight: 500 !important;
+                    height: 30px !important;
+                    min-height: 30px !important;
+                    padding: 0 !important;
+                    border-radius: 6px !important;
+                    box-shadow: none !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    transition: all 0.15s ease !important;
+                }
+                div[class*="st-key-btn_clear_all_chats"] button:hover {
+                    background: rgba(248, 113, 113, 0.08) !important;
+                    color: #f87171 !important;
+                }
+
+                /* Empty state */
+                .mentor-hist-empty {
+                    padding: 24px 12px;
+                    text-align: center;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .mentor-hist-empty-title {
+                    color: #cbd5e1;
+                    font-size: 0.86rem;
+                    font-weight: 500;
+                }
+                .mentor-hist-empty-desc {
+                    color: #64748b;
+                    font-size: 0.76rem;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Compact Header: Chat History + Your conversations on Left, Close on Right
+            col_head_text, col_head_close = st.columns([5.2, 0.8], vertical_alignment="center")
+            with col_head_text:
+                st.markdown(
+                    """
+                    <div class="mentor-hist-header">
+                        <div class="mentor-hist-title">Chat History</div>
+                        <div class="mentor-hist-subtitle">Your conversations</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with col_head_close:
+                if st.button(":material/close:", key="btn_close_history_popover", help="Close history"):
+                    st.rerun()
+
+            # Compact Export Action directly below Header
             if st.session_state.mentor_chat_history:
                 export_json = MentorDatabaseManager.export_session_json(st.session_state.mentor_session_id)
                 st.download_button(
-                    ":material/download: Export chat (JSON)",
+                    ":material/download: Export JSON",
                     data=export_json,
                     file_name=f"mentor_chat_{st.session_state.mentor_session_id}.json",
                     mime="application/json",
                     key="btn_export_active_chat",
-                    width="stretch",
+                    help="Export current conversation as JSON",
                 )
-                st.divider()
 
+            # Scrollable History List
             if not saved_sessions:
-                st.info("No saved conversations in database yet. Start chatting to save automatically!")
+                st.markdown(
+                    """
+                    <div class="mentor-hist-empty">
+                        <span class="mentor-hist-empty-title">No conversations yet</span>
+                        <span class="mentor-hist-empty-desc">Your chat history will be automatically saved here.</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
             else:
                 grouped = _group_sessions_by_date(saved_sessions)
-                for group_name, sess_list in grouped.items():
-                    if sess_list:
-                        st.markdown(f"**{group_name}**")
-                        for s in sess_list:
-                            s_id = s.get("id")
-                            s_title = s.get("title") or "Career Discussion"
-                            short_title = (s_title[:26] + "...") if len(s_title) > 26 else s_title
-                            is_curr = s_id == st.session_state.mentor_session_id
+                with st.container(key="mentor_history_scroll"):
+                    for group_name, sess_list in grouped.items():
+                        if sess_list:
+                            st.markdown(f'<div class="mentor-hist-date-label">{group_name}</div>', unsafe_allow_html=True)
+                            for s in sess_list:
+                                s_id = s.get("id")
+                                s_title = s.get("title") or "Career Discussion"
+                                short_title = (s_title[:28] + "...") if len(s_title) > 28 else s_title
+                                is_curr = s_id == st.session_state.mentor_session_id
 
-                            row_col1, row_col2 = st.columns([4, 1])
-                            with row_col1:
-                                btn_type = "primary" if is_curr else "secondary"
-                                if st.button(
-                                    short_title,
-                                    key=f"hist_load_{s_id}",
-                                    type=btn_type,
-                                    help=f"{s_title}\n({s.get('message_count', 0)} messages)",
-                                    width="stretch",
-                                ):
-                                    msgs = MentorDatabaseManager.load_session(s_id)
-                                    st.session_state.mentor_session_id = s_id
-                                    st.session_state.mentor_chat_history = msgs
-                                    st.toast(f"Loaded: '{short_title}'")
-                                    st.rerun()
-                            with row_col2:
-                                if st.button(":material/delete:", key=f"hist_del_{s_id}", help="Delete this chat from database"):
-                                    MentorDatabaseManager.delete_session(s_id)
-                                    if s_id == st.session_state.mentor_session_id:
-                                        st.session_state.mentor_chat_history = []
-                                        st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
-                                    st.toast("Conversation deleted.")
-                                    st.rerun()
+                                row_col1, row_col2 = st.columns([5.3, 0.9], gap="small", vertical_alignment="center")
+                                with row_col1:
+                                    btn_type = "primary" if is_curr else "secondary"
+                                    if st.button(
+                                        short_title,
+                                        key=f"hist_load_{s_id}",
+                                        type=btn_type,
+                                        help=f"{s_title}\n({s.get('message_count', 0)} messages)",
+                                        width="stretch",
+                                    ):
+                                        msgs = MentorDatabaseManager.load_session(s_id)
+                                        st.session_state.mentor_session_id = s_id
+                                        st.session_state.mentor_chat_history = msgs
+                                        st.toast(f"Loaded: '{short_title}'")
+                                        st.rerun()
+                                with row_col2:
+                                    if st.button(":material/delete:", key=f"hist_del_{s_id}", help="Delete this chat from database"):
+                                        MentorDatabaseManager.delete_session(s_id)
+                                        if s_id == st.session_state.mentor_session_id:
+                                            st.session_state.mentor_chat_history = []
+                                            st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
+                                        st.toast("Conversation deleted.")
+                                        st.rerun()
 
-                st.divider()
-                if st.button("Clear all chat history", key="btn_clear_all_chats", type="secondary", width="stretch"):
+                # Bottom Pinned Clear Action
+                st.markdown('<div class="mentor-hist-divider"></div>', unsafe_allow_html=True)
+                if st.button("Clear all chat history", key="btn_clear_all_chats", type="secondary", width="stretch", help="Permanently clear all saved conversations"):
                     MentorDatabaseManager.clear_all_sessions()
                     st.session_state.mentor_chat_history = []
                     st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"

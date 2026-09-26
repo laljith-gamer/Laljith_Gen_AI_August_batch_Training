@@ -793,10 +793,17 @@ def inject_global_styles(theme_mode: str = "light"):
     /* Popover dropdown panel */
     .stPopover [data-testid="stPopoverBody"],
     div[data-baseweb="popover"] > div {{
+        width: 395px !important;
+        max-width: min(415px, calc(100vw - 28px)) !important;
+        max-height: 74vh !important;
         background-color: var(--sh-surface) !important;
         border: 1px solid var(--sh-border) !important;
-        border-radius: var(--sh-radius-lg) !important;
-        box-shadow: var(--sh-shadow-md) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--sh-border-subtle) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        padding: 16px 18px 14px 18px !important;
+        overflow-x: hidden !important;
     }}
 
     .stPopover [data-testid="stPopoverBody"] *,
