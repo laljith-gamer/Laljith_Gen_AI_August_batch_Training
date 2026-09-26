@@ -22,6 +22,14 @@ class MentorRetriever:
     ):
         self.embed_manager = embed_manager or EmbeddingManager()
         self.vector_store = vector_store or FaissVectorStore(settings.MENTOR_INDEX_DIR)
+        if not self.vector_store.exists():
+            try:
+                from scripts.build_mentor_index import build_mentor_index
+                logger.info("Mentor FAISS index missing. Auto-building...")
+                build_mentor_index(force=False)
+                self.vector_store.load()
+            except Exception as e:
+                logger.warning(f"Could not automatically build mentor index: {e}")
 
     def retrieve(
         self,

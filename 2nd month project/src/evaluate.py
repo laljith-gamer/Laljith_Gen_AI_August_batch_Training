@@ -29,6 +29,27 @@ class SystemEvaluator:
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.get_gemini_api_key()
+
+        # Ensure Job FAISS index is built and available
+        job_index_file = settings.JOB_INDEX_DIR / "index.faiss"
+        if not job_index_file.exists():
+            try:
+                from scripts.build_job_index import build_job_index
+                logger.info("Job FAISS index missing. Auto-building...")
+                build_job_index(force=False)
+            except Exception as e:
+                logger.warning(f"Could not auto-build job index: {e}")
+
+        # Ensure Mentor FAISS index is built and available
+        mentor_index_file = settings.MENTOR_INDEX_DIR / "index.faiss"
+        if not mentor_index_file.exists():
+            try:
+                from scripts.build_mentor_index import build_mentor_index
+                logger.info("Mentor FAISS index missing. Auto-building...")
+                build_mentor_index(force=False)
+            except Exception as e:
+                logger.warning(f"Could not auto-build mentor index: {e}")
+
         self.search_engine = JobSearchEngine(api_key=self.api_key)
         self.rag_chain = MentorRAGChain(api_key=self.api_key)
 

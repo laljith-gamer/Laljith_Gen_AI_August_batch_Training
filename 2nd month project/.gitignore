@@ -34,10 +34,6 @@ env/
 *.db
 
 # Vector stores & cache artifacts
-vectorstore/jobs/*.faiss
-vectorstore/jobs/*.pkl
-vectorstore/mentor/*.faiss
-vectorstore/mentor/*.pkl
 *.cache
 embedding_cache.json
 

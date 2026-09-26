@@ -21,6 +21,14 @@ class JobSearchEngine:
         self.api_key = api_key or settings.get_gemini_api_key()
         self.embed_manager = embed_manager or EmbeddingManager(api_key=self.api_key)
         self.vector_store = vector_store or FaissVectorStore(settings.JOB_INDEX_DIR)
+        if not self.vector_store.exists():
+            try:
+                from scripts.build_job_index import build_job_index
+                logger.info("Job FAISS index missing. Auto-building...")
+                build_job_index(force=False)
+                self.vector_store.load()
+            except Exception as e:
+                logger.warning(f"Could not automatically build job index: {e}")
 
     @property
     def index(self):
