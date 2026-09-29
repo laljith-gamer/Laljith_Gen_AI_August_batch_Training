@@ -5,7 +5,7 @@
 [![Google GenAI SDK](https://img.shields.io/badge/Google%20GenAI%20SDK-v2.22.0-orange)](https://github.com/google-gemini/generative-ai-python)
 [![Streamlit](https://img.shields.io/badge/Streamlit-v1.64.0-red)](https://streamlit.io/)
 [![FAISS](https://img.shields.io/badge/FAISS-CPU%20v1.15.0-green)](https://github.com/facebookresearch/faiss)
-[![Tests Passing](https://img.shields.io/badge/tests-24%20passed-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/tests-45%20passed-brightgreen.svg)]() [![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit%20Cloud-FF4B4B)](https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/)
 
 SmartHire GenAI is an end-to-end career intelligence portal that transforms candidate resumes into structured profiles with **Human-in-the-Loop (HITL) approval**, performs **dense semantic vector matching** against curated job postings using FAISS, generates **job-tailored CV improvements**, and provides an **AI Career Mentor** chatbot grounded in verified career roadmaps using **Retrieval-Augmented Generation (RAG)** and **Prompt Injection Guardrails**.
 
@@ -228,8 +228,8 @@ smarthire-genai/
 ### 2. Environment Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/smarthire-genai.git
-cd smarthire-genai
+git clone https://github.com/laljith-gamer/Laljith_Gen_AI_August_batch_Training.git
+cd Laljith_Gen_AI_August_batch_Training/2nd\ month\ project
 
 # Create virtual environment
 python -m venv .venv
@@ -379,6 +379,8 @@ SmartHire GenAI enforces defense-in-depth:
    EMBEDDING_DIMENSION = 3072
    ```
 5. Deploy! The vector store indexes will load seamlessly from the repository.
+
+**Live Demo:** [https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/](https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/)
 
 ---
 

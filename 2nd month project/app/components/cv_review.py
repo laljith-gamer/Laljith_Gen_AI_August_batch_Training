@@ -252,3 +252,109 @@ def render_cv_review():
             FeedbackManager.record_cv_feedback(selected_job.job_id, "regenerated", "Requested new generation")
             st.toast("Regenerating suggestions...")
             st.rerun()
+
+    # =========================================================
+    # SECTION 5: DOWNLOAD TAILORED RESUME
+    # =========================================================
+    if suggestions.status in (ReviewStatus.APPROVED, ReviewStatus.HUMAN_EDITED):
+        with st.container(border=True):
+            st.markdown("#### 5. Download tailored resume")
+            st.caption("Export your improved resume as a Word document (.docx) with the approved changes applied.")
+
+            try:
+                from docx import Document as DocxDocument
+                from docx.shared import Pt, Inches, RGBColor
+                from docx.enum.text import WD_ALIGN_PARAGRAPH
+                import io
+
+                doc = DocxDocument()
+                style = doc.styles['Normal']
+                font = style.font
+                font.name = 'Calibri'
+                font.size = Pt(11)
+
+                # Header: Candidate Name
+                if profile.name:
+                    heading = doc.add_heading(profile.name, level=0)
+                    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    for run in heading.runs:
+                        run.font.color.rgb = RGBColor(0x1d, 0x4e, 0xd8)
+
+                # Contact line
+                contact_parts = [p for p in [profile.email, profile.phone, profile.location] if p]
+                if contact_parts:
+                    contact_para = doc.add_paragraph(' | '.join(contact_parts))
+                    contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    for run in contact_para.runs:
+                        run.font.size = Pt(10)
+                        run.font.color.rgb = RGBColor(0x64, 0x74, 0x8B)
+
+                # Tailored Summary
+                doc.add_heading('Professional Summary', level=1)
+                doc.add_paragraph(suggestions.rewritten_summary)
+
+                # Skills
+                if profile.skills:
+                    doc.add_heading('Technical Skills', level=1)
+                    doc.add_paragraph(', '.join(profile.skills))
+
+                # Tailored Experience Bullets
+                if suggestions.rewritten_bullets:
+                    doc.add_heading('Key Achievements', level=1)
+                    for bullet in suggestions.rewritten_bullets:
+                        doc.add_paragraph(bullet, style='List Bullet')
+
+                # Original Experience
+                if profile.experience:
+                    doc.add_heading('Experience', level=1)
+                    for exp in profile.experience:
+                        role_line = f"{exp.role or 'Role'}" + (f" at {exp.company}" if exp.company else "")
+                        date_line = ""
+                        if exp.start_date:
+                            date_line = f" ({exp.start_date} – {exp.end_date or 'Present'})"
+                        exp_heading = doc.add_paragraph()
+                        run = exp_heading.add_run(role_line + date_line)
+                        run.bold = True
+                        run.font.size = Pt(11)
+                        if exp.description:
+                            doc.add_paragraph(exp.description)
+
+                # Education
+                if profile.education:
+                    doc.add_heading('Education', level=1)
+                    for edu in profile.education:
+                        edu_text = f"{edu.degree or 'Degree'}" + (f" in {edu.field}" if edu.field else "")
+                        edu_text += f" — {edu.institution}" if edu.institution else ""
+                        if edu.end_date:
+                            edu_text += f" ({edu.end_date})"
+                        doc.add_paragraph(edu_text)
+
+                # Target role footer
+                doc.add_paragraph()
+                footer = doc.add_paragraph(f"Tailored for: {selected_job.title} at {selected_job.company}")
+                for run in footer.runs:
+                    run.font.size = Pt(9)
+                    run.font.italic = True
+                    run.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
+
+                # Save to buffer
+                buffer = io.BytesIO()
+                doc.save(buffer)
+                buffer.seek(0)
+
+                safe_name = (profile.name or "candidate").replace(" ", "_").lower()
+                safe_job = selected_job.title.replace(" ", "_").lower()
+                filename = f"{safe_name}_tailored_{safe_job}.docx"
+
+                st.download_button(
+                    label="Download tailored resume (.docx)",
+                    data=buffer,
+                    file_name=filename,
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    type="primary",
+                    key="btn_download_tailored_resume",
+                )
+            except ImportError:
+                st.warning("python-docx is required for DOCX export. Install it with: `pip install python-docx`")
+            except Exception as e:
+                st.error(f"Could not generate resume document: {e}")

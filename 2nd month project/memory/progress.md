@@ -13,14 +13,21 @@
 - [x] **PHASE 9**: Guardrails layer, prompt injection defense, scope validator, adversarial tests.
 - [x] **PHASE 10**: Comprehensive evaluation (retrieval hit rate, grounding correctness, prompt comparison, hallucination test).
 - [x] **PHASE 11**: Polished Streamlit web application with multi-tab workflow and responsive layout.
-- [x] **PHASE 12**: Automated test suite execution (24 tests passing + E2E smoke test), bug fixes, end-to-end verification.
+- [x] **PHASE 12**: Automated test suite execution (45 tests passing + E2E smoke test), bug fixes, end-to-end verification.
 - [x] **PHASE 13**: README, documentation, deployment preparation.
+- [x] **PHASE 14**: Live deployment to Streamlit Community Cloud, deployment URL added to README.
+- [x] **PHASE 15**: Final report PDF generation (`reports/final_report.pdf`) from markdown.
+- [x] **PHASE 16**: Embedding model comparison notebook (Gemini vs TF-IDF baseline, `notebooks/04_embedding_model_comparison.ipynb`).
+- [x] **PHASE 17**: Tailored resume DOCX download feature in Resume Studio (Stretch Goal 3).
 
 ## Summary of Completed Deliverables
-- **24 automated tests** passing in Pytest across all 6 subsystems (`tests/`).
+- **45 automated tests** passing in Pytest across all 10 test modules (`tests/`).
 - **End-to-end integration smoke test** (`tests/test_e2e_smoke.py`) passing with zero failures.
 - **Evaluation report** (`reports/answer_quality.md` & `reports/evaluation_results.json`) generated with 100% retrieval hit rate and 100% hallucination refusal accuracy.
+- **Final project report** available in both markdown (`reports/final_report.md`) and PDF (`reports/final_report.pdf`) formats.
 - **Pre-collected job corpus** (`data/jobs/jobs.csv`) indexed in FAISS (`vectorstore/jobs/`).
 - **Career knowledge base** (`data/career_notes/`) indexed in FAISS (`vectorstore/mentor/`).
 - **Sample resumes** (`data/resumes/sample_resume.pdf` & `sample_resume.docx`) generated for immediate demonstration.
-- **Full Streamlit Application** (`app/streamlit_app.py`) featuring 8 interactive tabs, state machine protection, and Human-in-the-Loop review controls.
+- **Full Streamlit Application** (`app/streamlit_app.py`) featuring 6 workspace views, state machine protection, Human-in-the-Loop review controls, and DOCX resume download.
+- **Embedding model comparison** (`notebooks/04_embedding_model_comparison.ipynb`) benchmarking Gemini dense embeddings vs TF-IDF baseline.
+- **Live deployment** at https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/
