@@ -209,15 +209,24 @@ class MentorRAGChain:
         if is_casual:
             citations = []
 
-        return MentorResponse(
-            question=question,
-            answer=answer,
-            citations=citations,
-            is_grounded=not is_refusal,
-            refusal=is_refusal,
-            thinking=thinking_text,
-            thinking_duration=call_elapsed,
-        )
+        resp_kwargs = {
+            "question": question,
+            "answer": answer,
+            "citations": citations,
+            "is_grounded": not is_refusal,
+            "refusal": is_refusal,
+            "thinking": thinking_text,
+        }
+        if hasattr(MentorResponse, "model_fields") and "thinking_duration" in MentorResponse.model_fields:
+            resp_kwargs["thinking_duration"] = call_elapsed
+
+        response_obj = MentorResponse(**resp_kwargs)
+        if not hasattr(response_obj, "thinking_duration") and call_elapsed is not None:
+            try:
+                object.__setattr__(response_obj, "thinking_duration", call_elapsed)
+            except Exception:
+                pass
+        return response_obj
 
 
     def _call_gemini_rag(

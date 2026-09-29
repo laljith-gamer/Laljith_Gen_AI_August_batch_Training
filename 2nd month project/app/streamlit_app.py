@@ -13,12 +13,21 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Ensure cached modules are refreshed across live reloads
-if "src.config" in sys.modules:
-    try:
-        import importlib
-        importlib.reload(sys.modules["src.config"])
-    except Exception:
-        pass
+for mod in [
+    "src.config",
+    "src.models.schemas",
+    "src.models.enums",
+    "src.mentor.rag_chain",
+    "src.mentor.prompts",
+    "app.components.mentor_chat",
+    "app.components.mentor_storage",
+]:
+    if mod in sys.modules:
+        try:
+            import importlib
+            importlib.reload(sys.modules[mod])
+        except Exception:
+            pass
 
 import streamlit as st
 from src.config import settings

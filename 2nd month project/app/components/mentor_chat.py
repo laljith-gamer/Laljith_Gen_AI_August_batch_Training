@@ -734,17 +734,18 @@ def render_mentor_chat():
                                 refusal=True,
                             )
                         t_gen_elapsed = max(round(time.time() - t_gen_start, 1), 0.5)
-                        duration_val = response.thinking_duration or t_gen_elapsed
+                        duration_val = getattr(response, "thinking_duration", None) or t_gen_elapsed
                         status_box.update(
                             label=f":material/psychology: Thought for {duration_val}s",
                             state="complete",
                             expanded=False,
                         )
-                        if response.thinking:
+                        resp_thinking = getattr(response, "thinking", None)
+                        if resp_thinking:
                             st.markdown(
                                 f"""
                                 <div style="font-size: 0.86rem; color: var(--sh-text-muted, #94a3b8); line-height: 1.55; white-space: pre-wrap; font-style: italic; border-left: 2px solid rgba(59, 130, 246, 0.45); padding: 4px 0 4px 12px; margin: 4px 0;">
-                                {response.thinking}
+                                {resp_thinking}
                                 </div>
                                 """,
                                 unsafe_allow_html=True,
@@ -774,23 +775,28 @@ def render_mentor_chat():
                     typing_placeholder.empty()
 
                 # Animated live text streaming of the final answer
-                st.write_stream(_stream_text_chunks(response.answer))
+                resp_answer = getattr(response, "answer", "")
+                st.write_stream(_stream_text_chunks(resp_answer))
 
-                if response.citations:
-                    with st.expander(f"Sources ({len(response.citations)} documents)", expanded=False):
-                        for c in response.citations:
-                            st.markdown(f"• **{c.source_title}**")
-                            if c.snippet:
-                                st.caption(f"Excerpt: *\"{c.snippet}...\"*")
+                resp_citations = getattr(response, "citations", [])
+                if resp_citations:
+                    with st.expander(f"Sources ({len(resp_citations)} documents)", expanded=False):
+                        for c in resp_citations:
+                            st.markdown(f"• **{getattr(c, 'source_title', 'Document')}**")
+                            snippet = getattr(c, "snippet", "")
+                            if snippet:
+                                st.caption(f"Excerpt: *\"{snippet}...\"*")
 
                 # Store assistant response in history and persist to database
-                citations_dict = [c.model_dump() for c in response.citations]
+                citations_dict = [c.model_dump() for c in resp_citations]
+                resp_thinking = getattr(response, "thinking", None)
+                resp_duration = getattr(response, "thinking_duration", None)
                 st.session_state.mentor_chat_history.append({
                     "role": "assistant",
-                    "content": response.answer,
+                    "content": resp_answer,
                     "question": user_text,
-                    "thinking": response.thinking,
-                    "thinking_duration": response.thinking_duration,
+                    "thinking": resp_thinking,
+                    "thinking_duration": resp_duration,
                     "citations": citations_dict,
                     "timestamp": now_ts,
                 })
@@ -798,8 +804,8 @@ def render_mentor_chat():
                 MentorDatabaseManager.save_message(
                     session_id=session_id,
                     role="assistant",
-                    content=response.answer,
-                    thinking=response.thinking,
+                    content=resp_answer,
+                    thinking=resp_thinking,
                     citations=citations_dict,
                     candidate_name=cand_name,
                     target_role=cand_role,
