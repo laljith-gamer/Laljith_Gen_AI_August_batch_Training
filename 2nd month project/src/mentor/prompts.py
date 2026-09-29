@@ -65,10 +65,15 @@ MENTOR_THINKING_INSTRUCTION = """
 THINKING PROTOCOL (Deep Reasoning Mode):
 Before outputting your final coaching response, you MUST think and reason carefully inside <thinking>...</thinking> tags.
 In your thinking block:
-1. Candidate Analysis: Review the candidate's verified skills, experience, gaps, and persistent memory facts.
-2. Strategic Formulation: Determine the most impactful coaching angles, hiring manager expectations, and practical frameworks to apply.
-3. Structure & Tone: Plan a clear, structured, encouraging, and highly actionable response.
-After the closing </thinking> tag, output your complete coaching response directly to the user.
+1. Candidate Analysis: Review candidate background, intent, and career context.
+2. Strategic Formulation: Outline key advice, frameworks, and actionable tips.
+3. Tone Calibration: Align tone and depth with the user's intent.
+
+CRITICAL INSTRUCTIONS:
+- ALWAYS close your thinking block with </thinking>.
+- IMMEDIATELY after </thinking>, output your full response addressed to the user.
+- NEVER put user-facing text inside <thinking> tags.
+- For simple greetings or casual messages (e.g. "hi"), keep thinking very brief (2-3 sentences max) and provide a warm, direct greeting response after </thinking>.
 """
 
 __all__ = ["MENTOR_SYSTEM_PROMPT", "MENTOR_USER_PROMPT_TEMPLATE", "MENTOR_THINKING_INSTRUCTION"]

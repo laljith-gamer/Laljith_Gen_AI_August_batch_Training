@@ -577,12 +577,45 @@ def render_mentor_chat():
         role = msg.get("role", "user")
         avatar_icon = ":material/account_circle:" if role == "user" else ":material/auto_awesome:"
         with st.chat_message(role, avatar=avatar_icon):
-            # Render thinking block if present
-            if role == "assistant" and msg.get("thinking"):
-                with st.expander("Thought process", expanded=False):
-                    st.markdown(msg["thinking"])
+            thinking_text = msg.get("thinking")
+            display_content = msg.get("content", "")
 
-            st.markdown(msg.get("content", ""))
+            # Self-healing: if an older message has raw <thinking> tags inside content, extract them cleanly
+            if role == "assistant" and "<thinking>" in display_content:
+                import re
+                if not thinking_text:
+                    if "</thinking>" in display_content:
+                        m = re.search(r"<thinking>(.*?)</thinking>", display_content, flags=re.DOTALL)
+                        if m:
+                            thinking_text = m.group(1).strip()
+                        display_content = re.sub(r"<thinking>.*?</thinking>", "", display_content, flags=re.DOTALL).strip()
+                    else:
+                        parts = display_content.split("<thinking>", 1)
+                        thinking_text = parts[1].strip()
+                        display_content = parts[0].strip()
+
+                if thinking_text:
+                    thinking_text = re.sub(r"</?thinking>", "", thinking_text).strip()
+                display_content = re.sub(r"</?thinking>", "", display_content).strip()
+
+                if not display_content:
+                    display_content = "Hello! How can I assist you with your career planning, resume, or interview preparation today?"
+
+            # Render thinking block if present
+            if role == "assistant" and thinking_text:
+                duration = msg.get("thinking_duration")
+                duration_label = f"Thought for {duration}s" if duration else "Thought process"
+                with st.expander(f":material/psychology: {duration_label}", expanded=False):
+                    st.markdown(
+                        f"""
+                        <div style="font-size: 0.86rem; color: var(--sh-text-muted, #94a3b8); line-height: 1.55; white-space: pre-wrap; font-style: italic; border-left: 2px solid rgba(59, 130, 246, 0.45); padding: 4px 0 4px 12px; margin: 4px 0;">
+                        {thinking_text}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown(display_content)
 
             # Citations block
             if role == "assistant" and msg.get("citations"):
@@ -674,38 +707,73 @@ def render_mentor_chat():
             with st.chat_message("user", avatar=":material/account_circle:"):
                 st.markdown(user_text)
 
-            # Generate AI response with typing indicator
+            # Generate AI response with typing indicator or thinking status
             with st.chat_message("assistant", avatar=":material/auto_awesome:"):
                 rag_chain = MentorRAGChain(api_key=AppStateManager.get_api_key())
+                is_thinking_on = st.session_state.get("mentor_think_mode", False)
 
-                # Show animated typing dots while generating
-                typing_placeholder = st.empty()
-                typing_placeholder.html(
-                    '<div class="sh-typing-dots"><span></span><span></span><span></span></div>'
-                )
-
-                try:
-                    response = rag_chain.answer_question(
-                        question=user_text,
-                        chat_history=st.session_state.mentor_chat_history,
-                        candidate_context=candidate_ctx,
-                        candidate_memory=MentorMemoryManager.get_memories(),
-                        enable_thinking=st.session_state.get("mentor_think_mode", False),
+                if is_thinking_on:
+                    with st.status(":material/psychology: Thinking...", expanded=True) as status_box:
+                        st.caption("Analyzing candidate context, intent, and career strategy...")
+                        t_gen_start = time.time()
+                        try:
+                            response = rag_chain.answer_question(
+                                question=user_text,
+                                chat_history=st.session_state.mentor_chat_history,
+                                candidate_context=candidate_ctx,
+                                candidate_memory=MentorMemoryManager.get_memories(),
+                                enable_thinking=True,
+                            )
+                        except Exception as exc:
+                            logger.error(f"Mentor query failed: {exc}", exc_info=True)
+                            response = MentorResponse(
+                                question=user_text,
+                                answer="The career mentor is temporarily unavailable. Please verify your connection or Gemini API key and try again.",
+                                citations=[],
+                                is_grounded=False,
+                                refusal=True,
+                            )
+                        t_gen_elapsed = max(round(time.time() - t_gen_start, 1), 0.5)
+                        duration_val = response.thinking_duration or t_gen_elapsed
+                        status_box.update(
+                            label=f":material/psychology: Thought for {duration_val}s",
+                            state="complete",
+                            expanded=False,
+                        )
+                        if response.thinking:
+                            st.markdown(
+                                f"""
+                                <div style="font-size: 0.86rem; color: var(--sh-text-muted, #94a3b8); line-height: 1.55; white-space: pre-wrap; font-style: italic; border-left: 2px solid rgba(59, 130, 246, 0.45); padding: 4px 0 4px 12px; margin: 4px 0;">
+                                {response.thinking}
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                else:
+                    typing_placeholder = st.empty()
+                    typing_placeholder.html(
+                        '<div class="sh-typing-dots"><span></span><span></span><span></span></div>'
                     )
-                except Exception as exc:
-                    logger.error(f"Mentor query failed: {exc}", exc_info=True)
-                    response = MentorResponse(
-                        question=user_text,
-                        answer="The career mentor is temporarily unavailable. Please verify your connection or Gemini API key and try again.",
-                        citations=[],
-                        is_grounded=False,
-                        refusal=True,
-                    )
+                    try:
+                        response = rag_chain.answer_question(
+                            question=user_text,
+                            chat_history=st.session_state.mentor_chat_history,
+                            candidate_context=candidate_ctx,
+                            candidate_memory=MentorMemoryManager.get_memories(),
+                            enable_thinking=False,
+                        )
+                    except Exception as exc:
+                        logger.error(f"Mentor query failed: {exc}", exc_info=True)
+                        response = MentorResponse(
+                            question=user_text,
+                            answer="The career mentor is temporarily unavailable. Please verify your connection or Gemini API key and try again.",
+                            citations=[],
+                            is_grounded=False,
+                            refusal=True,
+                        )
+                    typing_placeholder.empty()
 
-                # Clear typing dots and stream the response text
-                typing_placeholder.empty()
-
-                # Animated live text streaming
+                # Animated live text streaming of the final answer
                 st.write_stream(_stream_text_chunks(response.answer))
 
                 if response.citations:
@@ -722,6 +790,7 @@ def render_mentor_chat():
                     "content": response.answer,
                     "question": user_text,
                     "thinking": response.thinking,
+                    "thinking_duration": response.thinking_duration,
                     "citations": citations_dict,
                     "timestamp": now_ts,
                 })

@@ -150,8 +150,10 @@ class MentorRAGChain:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is required for the Career Mentor.")
 
+        import time
+        t_call_start = time.time()
         try:
-            answer = self._call_gemini_rag(
+            raw_answer = self._call_gemini_rag(
                 user_prompt,
                 model_name=model_name,
                 is_casual=is_casual,
@@ -167,14 +169,39 @@ class MentorRAGChain:
                 refusal=True,
             )
 
-        # Parse thinking block if present
+        call_elapsed = max(round(time.time() - t_call_start, 1), 0.5) if enable_thinking else None
+
+        # Robust parsing of thinking block if present
         thinking_text: Optional[str] = None
-        if "<thinking>" in answer:
+        answer = raw_answer
+        if "<thinking>" in raw_answer:
             import re
-            m = re.search(r"<thinking>(.*?)</thinking>", answer, flags=re.DOTALL)
-            if m:
-                thinking_text = m.group(1).strip()
-                answer = re.sub(r"<thinking>.*?</thinking>", "", answer, flags=re.DOTALL).strip()
+            if "</thinking>" in raw_answer:
+                m = re.search(r"<thinking>(.*?)</thinking>", raw_answer, flags=re.DOTALL)
+                if m:
+                    thinking_text = m.group(1).strip()
+                answer = re.sub(r"<thinking>.*?</thinking>", "", raw_answer, flags=re.DOTALL).strip()
+            else:
+                # Model omitted or truncated closing tag </thinking>
+                parts = raw_answer.split("<thinking>", 1)
+                thinking_text = parts[1].strip()
+                answer = parts[0].strip()
+
+        # Clean any remaining stray tags
+        if thinking_text:
+            import re
+            thinking_text = re.sub(r"</?thinking>", "", thinking_text).strip()
+        if answer:
+            import re
+            answer = re.sub(r"</?thinking>", "", answer).strip()
+
+        # Fallback if answer became empty because model put everything in thinking block
+        if not answer:
+            if is_casual:
+                cand_name = candidate_context.get("name", "there") if candidate_context else "there"
+                answer = f"Hello {cand_name}! How can I assist you with your career planning, resume, or interview preparation today?"
+            else:
+                answer = "I've analyzed your question and background. How can I best guide your next career step?"
 
         is_refusal = "i don't know based on the available documents" in answer.lower()
 
@@ -189,6 +216,7 @@ class MentorRAGChain:
             is_grounded=not is_refusal,
             refusal=is_refusal,
             thinking=thinking_text,
+            thinking_duration=call_elapsed,
         )
 
 
@@ -206,8 +234,13 @@ class MentorRAGChain:
         target_model = model_name or settings.GEMINI_MODEL
         candidate_models = ["gemini-flash-latest", target_model, "gemini-3.6-flash", "gemini-3.1-flash-lite"]
 
-        # Strict token budgeting: 100 for casual, 1000 for thinking mode, 450 for normal queries
-        token_budget = 100 if is_casual else (1000 if enable_thinking else 450)
+        # Token budgeting: thinking mode requires tokens for internal reasoning AND the full answer
+        if enable_thinking:
+            token_budget = 2048 if not is_casual else 1200
+        elif is_casual:
+            token_budget = 160
+        else:
+            token_budget = 650
 
         config = types.GenerateContentConfig(
             system_instruction=MENTOR_SYSTEM_PROMPT,

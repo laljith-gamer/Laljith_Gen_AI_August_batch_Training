@@ -178,6 +178,43 @@ def test_mentor_rag_thinking_extraction():
     assert "Candidate is asking about behavioral interviews" in resp.thinking
     assert "<thinking>" not in resp.answer
     assert "Here is a comprehensive framework" in resp.answer
+    assert resp.thinking_duration is not None
+
+
+def test_mentor_rag_unclosed_thinking_recovery():
+    """Verify that unclosed <thinking> tags (e.g. from token limit truncation) do not leak into the answer."""
+    from unittest.mock import MagicMock
+    from src.mentor.rag_chain import MentorRAGChain
+    from src.mentor.retriever import MentorRetriever
+
+    mock_retriever = MagicMock(spec=MentorRetriever)
+    mock_retriever.retrieve.return_value = []
+
+    chain = MentorRAGChain(retriever=mock_retriever, api_key="dummy_key")
+
+    # Simulate model cutting off mid-thought without closing tag
+    truncated_output = (
+        "<thinking> 1. Candidate Analysis: The user simply said 'hi'. "
+        "2. Strategic Formulation: Keep it brief and friendly. "
+        "3. Structure & Tone: Warm greeting."
+    )
+    chain._call_gemini_rag = MagicMock(return_value=truncated_output)
+
+    resp = chain.answer_question(
+        question="hi",
+        candidate_context={"name": "Laljith V", "has_resume": True},
+        enable_thinking=True,
+    )
+
+    # Thinking must be captured
+    assert resp.thinking is not None
+    assert "Candidate Analysis" in resp.thinking
+    # Raw thinking tags must NEVER leak to answer
+    assert "<thinking>" not in resp.answer
+    assert "</thinking>" not in resp.answer
+    # Must have a graceful user-facing greeting
+    assert len(resp.answer) > 0
+    assert "Laljith" in resp.answer or "Hello" in resp.answer
 
 
 def test_mentor_database_operations(tmp_path):

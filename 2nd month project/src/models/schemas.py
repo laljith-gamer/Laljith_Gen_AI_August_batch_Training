@@ -121,4 +121,5 @@ class MentorResponse(BaseModel):
     is_grounded: bool = True
     refusal: bool = False
     thinking: Optional[str] = None
+    thinking_duration: Optional[float] = None
 

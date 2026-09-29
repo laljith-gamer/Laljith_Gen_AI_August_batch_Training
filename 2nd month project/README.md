@@ -5,7 +5,7 @@
 [![Google GenAI SDK](https://img.shields.io/badge/Google%20GenAI%20SDK-v2.22.0-orange)](https://github.com/google-gemini/generative-ai-python)
 [![Streamlit](https://img.shields.io/badge/Streamlit-v1.64.0-red)](https://streamlit.io/)
 [![FAISS](https://img.shields.io/badge/FAISS-CPU%20v1.15.0-green)](https://github.com/facebookresearch/faiss)
-[![Tests Passing](https://img.shields.io/badge/tests-45%20passed-brightgreen.svg)]() [![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit%20Cloud-FF4B4B)](https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/)
+[![Tests Passing](https://img.shields.io/badge/tests-46%20passed-brightgreen.svg)]() [![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit%20Cloud-FF4B4B)](https://laljithgenaiaugustbatchtraining-iuuh9yklt3cca53wdrllml.streamlit.app/)
 
 SmartHire GenAI is an end-to-end career intelligence portal that transforms candidate resumes into structured profiles with **Human-in-the-Loop (HITL) approval**, performs **dense semantic vector matching** against curated job postings using FAISS, generates **job-tailored CV improvements**, and provides an **AI Career Mentor** chatbot grounded in verified career roadmaps using **Retrieval-Augmented Generation (RAG)** and **Prompt Injection Guardrails**.
 
