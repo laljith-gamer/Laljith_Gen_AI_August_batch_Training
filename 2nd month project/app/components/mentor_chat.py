@@ -89,9 +89,10 @@ def render_mentor_chat():
     cand_name = candidate_ctx.get("name", "Candidate")
     cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
 
-    # Initialize ChatGPT-style candidate memories from database or context
-    MentorMemoryManager.initialize_memories(candidate_ctx)
-    memories = MentorMemoryManager.get_memories()
+    # Initialize ChatGPT-style candidate memories scoped to the active session
+    session_id = st.session_state.mentor_session_id
+    MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id)
+    memories = MentorMemoryManager.get_memories(session_id=session_id)
 
     # 2. Fetch saved sessions from database
     saved_sessions = MentorDatabaseManager.list_sessions()
@@ -138,7 +139,8 @@ def render_mentor_chat():
                 new_id = f"session_{int(time.time() * 1000)}"
                 st.session_state.mentor_chat_history = []
                 st.session_state.mentor_session_id = new_id
-                st.toast("Started fresh conversation.")
+                MentorMemoryManager.reset_session_memories(new_id, candidate_ctx)
+                st.toast("Started fresh conversation with new memory.")
                 st.rerun()
 
         with col_think:
@@ -515,6 +517,7 @@ def render_mentor_chat():
                                             msgs = MentorDatabaseManager.load_session(s_id)
                                             st.session_state.mentor_session_id = s_id
                                             st.session_state.mentor_chat_history = msgs
+                                            MentorMemoryManager.load_session_memories(s_id)
                                             st.toast(f"Loaded: '{short_title}'")
                                             st.rerun()
                                     with row_col2:
@@ -536,15 +539,15 @@ def render_mentor_chat():
                         st.rerun()
 
         with col_mem:
-            # Memory Popover (ChatGPT-style Memory)
-            active_mems = MentorMemoryManager.get_memories()
+            # Memory Popover (Scoped to this conversation session)
+            active_mems = MentorMemoryManager.get_memories(session_id)
             mem_count_label = f":material/psychology: Memory ({len(active_mems)})" if active_mems else ":material/psychology: Memory"
-            with st.popover(mem_count_label, width="stretch", help="Manage persistent candidate facts remembered across chats"):
+            with st.popover(mem_count_label, width="stretch", help="Manage candidate facts remembered for this conversation"):
                 st.markdown("##### Candidate Memory")
-                st.caption("Facts stored in database to personalize career guidance across sessions.")
+                st.caption("Facts remembered for this conversation to personalize career guidance.")
 
                 if not active_mems:
-                    st.info("No active memories recorded. Attach a resume via chat (+) to save facts automatically.")
+                    st.info("No active memories for this chat. Attach a resume via chat (+) to save facts automatically.")
                 else:
                     for idx, mem in enumerate(active_mems):
                         m_c1, m_c2 = st.columns([5, 1])
@@ -552,7 +555,7 @@ def render_mentor_chat():
                             st.markdown(f"• {mem}")
                         with m_c2:
                             if st.button(":material/close:", key=f"del_mem_{idx}", help="Forget this memory fact"):
-                                MentorMemoryManager.remove_memory(idx)
+                                MentorMemoryManager.remove_memory(idx, session_id=session_id)
                                 st.toast("Memory removed.")
                                 st.rerun()
 
@@ -563,15 +566,15 @@ def render_mentor_chat():
                     key="input_new_memory_fact",
                 )
                 if st.button("Save to Memory", key="btn_save_custom_mem", width="stretch") and new_mem_input:
-                    MentorMemoryManager.add_memory(new_mem_input)
-                    st.toast("Memory saved to database.")
+                    MentorMemoryManager.add_memory(new_mem_input, session_id=session_id)
+                    st.toast("Memory saved for this chat.")
                     st.rerun()
 
                 if active_mems:
                     st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
                     if st.button("Clear all memories", key="btn_clear_all_memories", type="secondary", width="stretch"):
-                        MentorMemoryManager.clear_memories()
-                        st.toast("Candidate memories cleared from database.")
+                        MentorMemoryManager.clear_memories(session_id=session_id)
+                        st.toast("Candidate memories cleared for this chat.")
                         st.rerun()
 
 
@@ -711,7 +714,7 @@ def render_mentor_chat():
                 cand_name = candidate_ctx.get("name", "Candidate")
                 cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
                 for init_mem in CandidateContextManager.get_initial_memories(candidate_ctx):
-                    MentorMemoryManager.add_memory(init_mem)
+                    MentorMemoryManager.add_memory(init_mem, session_id=st.session_state.mentor_session_id)
 
                 AuditLogger.log_event("RESUME_ATTACHED_VIA_CHAT_INPUT", "USER", "SUCCESS", {"filename": first_file.name})
                 st.toast(f"Attached and parsed '{first_file.name}'!")
@@ -757,7 +760,7 @@ def render_mentor_chat():
                                 question=user_text,
                                 chat_history=st.session_state.mentor_chat_history,
                                 candidate_context=candidate_ctx,
-                                candidate_memory=MentorMemoryManager.get_memories(),
+                                candidate_memory=MentorMemoryManager.get_memories(session_id=session_id),
                                 enable_thinking=True,
                             )
                         except Exception as exc:
@@ -796,7 +799,7 @@ def render_mentor_chat():
                             question=user_text,
                             chat_history=st.session_state.mentor_chat_history,
                             candidate_context=candidate_ctx,
-                            candidate_memory=MentorMemoryManager.get_memories(),
+                            candidate_memory=MentorMemoryManager.get_memories(session_id=session_id),
                             enable_thinking=False,
                         )
                     except Exception as exc:
@@ -850,7 +853,8 @@ def render_mentor_chat():
                 # Autonomous ChatGPT-style candidate memory extraction
                 added_mems = MentorMemoryManager.process_turn_autonomously(
                     user_text=user_text,
-                    assistant_text=response.answer,
+                    assistant_text=resp_answer,
+                    session_id=session_id,
                     api_key=AppStateManager.get_api_key(),
                 )
                 if added_mems:

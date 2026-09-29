@@ -287,3 +287,66 @@ def test_secrets_reading():
     assert get_secret("NON_EXISTENT_KEY", default="fallback") == "fallback"
 
 
+def test_session_scoped_memories(tmp_path):
+    """Verify that memories are strictly isolated per chat session, reset on new chat, and restore on history switch."""
+    import streamlit as st
+    from src.data.mentor_db import MentorDatabase
+    from app.components.mentor_memory import MentorMemoryManager
+
+    test_db = tmp_path / "test_mentor_sessions.db"
+    MentorDatabase.set_db_path(test_db)
+
+    # 1. DB isolation tests
+    session_a = "sess_alpha_1"
+    session_b = "sess_beta_2"
+
+    MentorDatabase.add_memory("Prefers Python and FastAPI roles.", session_id=session_a)
+    MentorDatabase.add_memory("Targeting Senior Go Architect positions.", session_id=session_b)
+
+    mems_a = MentorDatabase.get_memories(session_id=session_a)
+    mems_b = MentorDatabase.get_memories(session_id=session_b)
+
+    assert "Prefers Python and FastAPI roles." in mems_a
+    assert "Targeting Senior Go Architect positions." not in mems_a
+
+    assert "Targeting Senior Go Architect positions." in mems_b
+    assert "Prefers Python and FastAPI roles." not in mems_b
+
+    # 2. MentorMemoryManager session isolation & new chat reset tests
+    cand_ctx = {
+        "has_resume": True,
+        "name": "Alex Mercer",
+        "target_role": "Backend Lead",
+        "years_of_experience": 6.0,
+        "skills": ["Python", "FastAPI"],
+        "summary": "Specialist in microservices.",
+    }
+
+    # Initialize Session A
+    mems_a_mgr = MentorMemoryManager.initialize_memories(cand_ctx, session_id=session_a)
+    MentorMemoryManager.add_memory("Only interested in remote work in Europe.", session_id=session_a)
+    current_a = MentorMemoryManager.get_memories(session_id=session_a)
+    assert "Only interested in remote work in Europe." in current_a
+
+    # Simulate New Chat -> Session B
+    mems_b_mgr = MentorMemoryManager.reset_session_memories(session_b, candidate_context=cand_ctx)
+    current_b = MentorMemoryManager.get_memories(session_id=session_b)
+    # Session B should have candidate profile facts, but NOT Session A's custom memory
+    assert "Only interested in remote work in Europe." not in current_b
+    assert any("Alex Mercer" in m for m in current_b)
+
+    # Add memory to Session B
+    MentorMemoryManager.add_memory("Needs minimum salary 120k GBP.", session_id=session_b)
+    assert "Needs minimum salary 120k GBP." in MentorMemoryManager.get_memories(session_id=session_b)
+
+    # Simulate History Click -> Load Session A back
+    restored_a = MentorMemoryManager.load_session_memories(session_a)
+    assert "Only interested in remote work in Europe." in restored_a
+    assert "Needs minimum salary 120k GBP." not in restored_a
+
+    # Clean up / delete session
+    MentorDatabase.delete_session(session_a)
+    assert len(MentorDatabase.get_memories(session_id=session_a)) == 0
+
+
+
