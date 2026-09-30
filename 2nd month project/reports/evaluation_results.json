@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-30T16:57:00.083090",
+  "timestamp": "2026-09-30T17:57:06.932944",
   "retrieval_evaluation": {
     "total_queries": 5,
     "hits": 5,
@@ -78,7 +78,7 @@
     "test_query": "How should I structure bullet points on my resume?",
     "naive_prompt_characteristic": "Generic advice without document traceability, prone to fabricating metrics.",
     "grounded_prompt_characteristic": "Restricted strictly to the XYZ formula from resume_writing_guide.txt with traceable citations.",
-    "grounded_answer_snippet": "The gold standard for structuring high-impact resume bullets is the **Google XYZ Formula**: \n\n> **\"Accomplished [X], as measured by [Y], by doing [Z]\"**\n\nHere is how to break that down:\n* **X (The Impact):** What did you achieve or improve?\n* **Y (Th...",
+    "grounded_answer_snippet": "The gold standard for tech resume bullets is the **Google XYZ formula**: *\u201cAccomplished [X], as measured by [Y], by doing [Z].\u201d* \n\nInstead of just listing tasks (like *\"Worked on backend APIs using Python\"*), flip it to lead with your impact and how ...",
     "citations_present": true,
     "citation_sources": [
       "Resume Writing Guide",
@@ -87,16 +87,16 @@
     ]
   },
   "hitl_feedback_metrics": {
-    "total_job_feedback": 66,
-    "job_relevant_count": 66,
+    "total_job_feedback": 73,
+    "job_relevant_count": 73,
     "job_irrelevant_count": 0,
     "job_relevance_rate": 1.0,
-    "total_mentor_feedback": 66,
-    "mentor_helpful_count": 66,
+    "total_mentor_feedback": 73,
+    "mentor_helpful_count": 73,
     "mentor_unhelpful_count": 0,
     "mentor_helpfulness_rate": 1.0,
-    "total_cv_actions": 33,
-    "cv_accepted": 33,
+    "total_cv_actions": 36,
+    "cv_accepted": 36,
     "cv_edited": 0,
     "cv_rejected": 0
   },

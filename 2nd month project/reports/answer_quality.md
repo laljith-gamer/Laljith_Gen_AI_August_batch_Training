@@ -1,6 +1,6 @@
 # SmartHire GenAI - Answer Quality & Evaluation Report
 
-**Generated:** 2026-09-30T16:57:00.083090
+**Generated:** 2026-09-30T17:57:06.932944
 
 ## 1. Retrieval Relevance Benchmark
 - **Total Test Queries:** 5
@@ -37,9 +37,9 @@
 ---
 
 ## 4. Human-in-the-Loop Feedback Telemetry
-- **Total Job Feedback:** 66 (Relevance Rate: 100.0%)
-- **Total Mentor Feedback:** 66 (Helpfulness Rate: 100.0%)
-- **CV Suggestions Actions:** 33 (Accepted: 33, Edited: 0, Rejected: 0)
+- **Total Job Feedback:** 73 (Relevance Rate: 100.0%)
+- **Total Mentor Feedback:** 73 (Helpfulness Rate: 100.0%)
+- **CV Suggestions Actions:** 36 (Accepted: 36, Edited: 0, Rejected: 0)
 
 ---
 

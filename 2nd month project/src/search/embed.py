@@ -22,7 +22,7 @@ class EmbeddingManager:
         enable_cache: bool = True,
     ):
         self.model_name = model_name or settings.GEMINI_EMBEDDING_MODEL
-        self.api_key = api_key or settings.get_gemini_api_key()
+        self.api_key = api_key if api_key is not None else settings.get_gemini_api_key()
         self.enable_cache = enable_cache
         self.cache: dict = {}
         self._load_cache()
@@ -109,6 +109,7 @@ class EmbeddingManager:
                 # Incremental persist to disk after each batch so progress is never lost
                 if self.enable_cache and newly_cached > 0:
                     self._save_cache()
+                time.sleep(1.0)
 
             processed_count += len(batch_texts)
             if show_progress and (processed_count % 500 == 0 or processed_count == total):
@@ -117,8 +118,9 @@ class EmbeddingManager:
         return np.array(results, dtype=np.float32)
 
     def _embed_batch_with_retry(self, texts: List[str]) -> List[np.ndarray]:
+        import re
         client = get_gemini_client(api_key=self.api_key)
-        max_retries = 4
+        max_retries = 6
         last_exc = None
 
         for attempt in range(max_retries):
@@ -134,9 +136,13 @@ class EmbeddingManager:
             except Exception as exc:
                 last_exc = exc
                 err_str = str(exc)
-                wait_sec = (attempt + 1) * 5
+                wait_sec = (attempt + 1) * 10
                 if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    wait_sec = max(wait_sec, 25)
+                    match = re.search(r"retry in ([\d\.]+)s", err_str, re.IGNORECASE) or re.search(r"retryDelay': '(\d+)s", err_str)
+                    if match:
+                        wait_sec = max(wait_sec, int(float(match.group(1))) + 5)
+                    else:
+                        wait_sec = max(wait_sec, 30 * (attempt + 1))
                 logger.warning(
                     f"Embed batch of {len(texts)} failed (attempt {attempt + 1}/{max_retries}): {exc}. "
                     f"Retrying in {wait_sec}s..."

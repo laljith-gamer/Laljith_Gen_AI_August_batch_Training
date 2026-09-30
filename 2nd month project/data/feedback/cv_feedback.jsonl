@@ -31,3 +31,6 @@
 {"timestamp": "2026-09-29T14:24:36.062102", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-29T16:10:00.642916", "type": "cv_improvement", "target_job_id": "JOB_101", "decision": "accepted", "change_note": "Accepted by test harness"}
 {"timestamp": "2026-09-30T16:54:36.304269", "type": "cv_improvement", "target_job_id": "NK_00024", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-30T17:22:32.468804", "type": "cv_improvement", "target_job_id": "NK_00024", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-30T17:40:14.240216", "type": "cv_improvement", "target_job_id": "NK_00024", "decision": "accepted", "change_note": "Accepted by test harness"}
+{"timestamp": "2026-09-30T17:49:54.771491", "type": "cv_improvement", "target_job_id": "NK_00024", "decision": "accepted", "change_note": "Accepted by test harness"}

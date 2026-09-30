@@ -97,8 +97,12 @@ class SystemEvaluator:
                 skills=tc["skills"],
                 summary=f"Experienced {tc['target_role']} looking for aligned engineering roles.",
             )
-            matches = self.search_engine.search_matching_jobs(prof, top_k=3, min_similarity=0.10)
-            
+            matches = []
+            try:
+                matches = self.search_engine.search_matching_jobs(prof, top_k=3, min_similarity=0.10)
+            except Exception as e:
+                logger.warning(f"Retrieval query for {tc['target_role']} failed (e.g. quota limit): {e}")
+
             # Check if any top match title or description contains expected keywords
             hit_found = False
             top_titles = [m.job.title for m in matches]

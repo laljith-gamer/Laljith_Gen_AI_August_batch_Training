@@ -4,14 +4,14 @@
 - **Issue**: Google preview models can occasionally return `503 UNAVAILABLE` during peak demand.
 - **Mitigation**: Automatic retry with exponential backoff and fallback model (`gemini-2.5-flash`).
 
-## 2. Gemini API Free Tier Embedding Rate Limits (100 items / min)
-- **Issue**: The Free Tier quota for `gemini-embedding-001` restricts embedding requests to 100 items per minute (`generativelanguage.googleapis.com/embed_content_free_tier_requests`). Attempting to embed all 21,739 jobs in one non-resumable run triggers HTTP 429 (`RESOURCE_EXHAUSTED`).
+## 2. Gemini API Free Tier Embedding Rate Limits (100 items/min & 1,000 requests/day)
+- **Issue**: The Free Tier quota for `gemini-embedding-001` restricts embedding requests to 100 items per minute and 1,000 requests per day per project (`EmbedContentRequestsPerDayPerProjectPerModel-FreeTier`). When building an index across 21,739 jobs, the daily quota ceiling of 1,000 requests is encountered.
 - **Mitigation**:
-  1. **Resumable Streaming Batching**: `EmbeddingManager.embed_texts` processes texts in batches of 25 and incrementally writes to `vectorstore/embedding_cache.json` after every batch.
-  2. **Zero Vector Loss**: If interrupted or quota-throttled, rerunning `python scripts/build_job_index.py` resumes from the last completed batch without duplicate API calls.
-  3. **Quota Backoff**: Automatically catches 429 errors and pauses with backoff before retrying.
-  4. **Explicit Flag `--limit N`**: For local verification, CI/CD, or development, `python scripts/build_job_index.py --limit 500` creates a verified partial index without consuming full API quotas.
-  5. **Transparent Metadata**: `index_metadata.json` explicitly flags `is_partial_index: true/false` and records `indexed_job_count` vs `total_dataset_rows`.
+  1. **Resumable Streaming Batching**: `EmbeddingManager.embed_texts` processes texts in batches of 25 and incrementally writes to `vectorstore/embedding_cache.json` after every single batch.
+  2. **Zero Vector Loss**: Progress is never discarded. When quota resets (or across consecutive days/paid tiers), re-running `python scripts/build_job_index.py --force` immediately reuses all cached embeddings and continues from where it stopped.
+  3. **Quota Backoff & retryDelay Parsing**: Automatically parses `retryDelay` and `Please retry in Xs` from Google API error responses, respecting the server cooldown before retrying.
+  4. **Explicit Flag `--limit N`**: For local testing, CI/CD, and fast development runs, `python scripts/build_job_index.py --limit 500` produces a verified development index without exceeding API quotas.
+  5. **Transparent Metadata**: `index_metadata.json` truthfully records `status: "PARTIAL / DEVELOPMENT"`, `is_partial_index: true`, and `indexed_job_count` until all 21,739 jobs are fully embedded.
 
 ## 3. Large Dataset UI Rendering Bottlenecks
 - **Issue**: Populating a Streamlit `st.selectbox` with all 21,739 job postings results in an ~80MB browser DOM, freezing browser tabs and causing UI unresponsiveness.

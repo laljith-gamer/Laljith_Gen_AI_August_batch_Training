@@ -29,16 +29,23 @@
   - UI modernization: Streamlit searchable role selector in `cv_review.py` (prevents 21,739-row DOM freeze), production dataset badges in `job_cards.py`
   - Hybrid skill overlap calculation in `src/search/job_search.py` (checks skills column + title/description)
   - Dynamic evaluation reporting in `src/evaluate.py` reflecting active dataset mode, corpus size, and index status
-  - 20-test dataset pipeline suite (`tests/test_dataset_pipeline.py`) — 35/35 test suite passing
+  - 20-test dataset pipeline suite (`tests/test_dataset_pipeline.py`) — full project suite: 67 tests
+  - Resumable streaming cache: 909 valid embeddings persisted in `vectorstore/embedding_cache.json`
 
-## Current Dataset Status
+## Current Dataset & Index Status
 - **Production Corpus**: Kaggle Naukri (`PromptCloudHQ/jobs-on-naukricom`)
   - File: `data/jobs/jobs_kaggle_naukri.csv`
   - Rows: 21,739 clean normalized jobs
   - Hash: `c12e3f6eee81f5e98371b487d031fdaa`
 - **Development/Test Demo Corpus**: 20 curated roles (`data/jobs/jobs_demo.csv`)
 - **Active Mode**: `raw_kaggle` (controlled via `JOB_DATA_MODE` env var)
-- **FAISS Vector Store**: `vectorstore/jobs/` (includes `index.faiss`, `metadata.pkl`, `index_metadata.json`)
+- **FAISS Vector Store**: `vectorstore/jobs/`
+  - FAISS vectors: 500
+  - Metadata records: 500
+  - Dimension: 3072 (`gemini-embedding-001`)
+  - Status: `PARTIAL / DEVELOPMENT` (`is_partial_index: true`)
+  - Cached embeddings in disk cache: 909 / 21,739
+  - Quota note: Gemini free-tier daily ceiling reached (`EmbedContentRequestsPerDayPerProjectPerModel-FreeTier: 1000`). Zero loss: cache preserved for immediate resumption.
 
 ## Exact Pipeline Reproduction Commands
 ```bash
