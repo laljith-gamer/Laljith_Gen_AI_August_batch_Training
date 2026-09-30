@@ -53,3 +53,10 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Raw Kaggle datasets & large archives
+data/raw/kaggle/**/*.csv
+data/raw/kaggle/**/*.zip
+data/raw/kaggle/jobs/*.csv
+data/raw/kaggle/resumes/*.csv
+data/raw/kaggle/linkedin/*.csv

@@ -35,6 +35,7 @@ from src.models.enums import WorkflowState
 from src.human_loop.audit import AuditLogger
 from src.human_loop.feedback import FeedbackManager
 from app.components.mentor_storage import MentorDatabaseManager
+from src.search.job_repository import JobRepository
 
 from app.state import AppStateManager
 from app.ui import (
@@ -59,6 +60,24 @@ st.set_page_config(
 )
 
 AppStateManager.initialize_state()
+
+# Dataset health check on startup
+if "_dataset_health_checked" not in st.session_state:
+    health = JobRepository.validate_dataset_health()
+    if health["issues"]:
+        st.session_state["_dataset_health_issues"] = health
+    st.session_state["_dataset_health_checked"] = True
+
+if st.session_state.get("_dataset_health_issues"):
+    health = st.session_state["_dataset_health_issues"]
+    if not health.get("dataset_available") or not health.get("index_available"):
+        with st.container(border=True):
+            st.warning("**Data pipeline setup required**")
+            for issue in health.get("issues", []):
+                st.caption(f"• {issue}")
+            if health.get("commands"):
+                st.code("\n".join(health["commands"]), language="bash")
+
 if "view" in st.query_params:
     q_view = st.query_params.get("view")
     if q_view:

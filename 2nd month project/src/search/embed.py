@@ -97,31 +97,33 @@ class EmbeddingManager:
         client = get_gemini_client(api_key=self.api_key)
         vectors: List[np.ndarray] = []
 
-        batch_size = 10
+        batch_size = 25
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
-            for text in batch:
-                max_retries = 3
-                last_exc = None
-                for attempt in range(max_retries):
-                    try:
-                        response = client.models.embed_content(
-                            model=self.model_name,
-                            contents=text,
-                        )
-                        raw_values = response.embeddings[0].values
-                        vectors.append(np.array(raw_values, dtype=np.float32))
-                        last_exc = None
-                        break
-                    except Exception as exc:
-                        last_exc = exc
-                        wait_sec = (attempt + 1) * 2
-                        logger.warning(
-                            f"Embed attempt {attempt + 1}/{max_retries} failed ({exc}). Retrying in {wait_sec}s..."
-                        )
-                        time.sleep(wait_sec)
-                if last_exc:
-                    raise last_exc
+            max_retries = 4
+            last_exc = None
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.embed_content(
+                        model=self.model_name,
+                        contents=batch,
+                    )
+                    for emb in response.embeddings:
+                        vectors.append(np.array(emb.values, dtype=np.float32))
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    err_str = str(exc)
+                    wait_sec = (attempt + 1) * 5
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        wait_sec = max(wait_sec, 20)
+                    logger.warning(
+                        f"Embed attempt {attempt + 1}/{max_retries} failed ({exc}). Retrying in {wait_sec}s..."
+                    )
+                    time.sleep(wait_sec)
+            if last_exc:
+                raise last_exc
 
         return vectors
 

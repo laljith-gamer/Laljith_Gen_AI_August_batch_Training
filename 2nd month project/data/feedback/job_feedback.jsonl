@@ -58,3 +58,7 @@
 {"timestamp": "2026-09-29T14:24:47.086809", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}
 {"timestamp": "2026-09-29T16:09:57.110151", "type": "job_matching", "job_id": "JOB_101", "job_title": "Senior Generative AI Engineer", "rating": "relevant", "candidate_role": "Senior Machine Learning & Generative AI Engineer"}
 {"timestamp": "2026-09-29T16:10:05.744732", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}
+{"timestamp": "2026-09-30T15:07:14.273303", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}
+{"timestamp": "2026-09-30T15:10:27.318393", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}
+{"timestamp": "2026-09-30T16:09:30.276652", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}
+{"timestamp": "2026-09-30T16:10:39.940609", "type": "job_matching", "job_id": "job_99", "job_title": "ML Engineer", "rating": "relevant", "candidate_role": "Data Scientist"}

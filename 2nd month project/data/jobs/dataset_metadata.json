@@ -1,0 +1,132 @@
+{
+  "dataset_name": "Kaggle Naukri Job Postings",
+  "source": "kaggle_naukri",
+  "source_dataset": "PromptCloudHQ/jobs-on-naukricom",
+  "raw_file": "C:\\Users\\ASUS\\Desktop\\personal\\genai-inter\\2nd month project\\data\\raw\\kaggle\\jobs\\naukri_com-job_sample.csv",
+  "raw_row_count": 22000,
+  "filtered_count": 4,
+  "duplicate_count": 257,
+  "normalized_row_count": 21739,
+  "columns_used": [
+    "job_id",
+    "title",
+    "company",
+    "location",
+    "skills",
+    "description",
+    "source",
+    "source_dataset",
+    "source_record_id",
+    "experience",
+    "education",
+    "industry"
+  ],
+  "output_file": "C:\\Users\\ASUS\\Desktop\\personal\\genai-inter\\2nd month project\\data\\jobs\\jobs_kaggle_naukri.csv",
+  "output_hash": "c12e3f6eee81f5e98371b487d031fdaa",
+  "max_rows_applied": null,
+  "prepared_at": "2026-09-30T15:25:29.591493+00:00",
+  "raw_audit": {
+    "total_rows": 22000,
+    "columns": [
+      "company",
+      "education",
+      "experience",
+      "industry",
+      "jobdescription",
+      "jobid",
+      "joblocation_address",
+      "jobtitle",
+      "numberofpositions",
+      "payrate",
+      "postdate",
+      "site_name",
+      "skills",
+      "uniq_id"
+    ],
+    "company": {
+      "null_count": 4,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "education": {
+      "null_count": 1996,
+      "null_pct": 9.1,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "experience": {
+      "null_count": 4,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "industry": {
+      "null_count": 5,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "jobdescription": {
+      "null_count": 4,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "jobid": {
+      "null_count": 0,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "joblocation_address": {
+      "null_count": 501,
+      "null_pct": 2.3,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "jobtitle": {
+      "null_count": 0,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "numberofpositions": {
+      "null_count": 17536,
+      "null_pct": 79.7,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "payrate": {
+      "null_count": 97,
+      "null_pct": 0.4,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "postdate": {
+      "null_count": 23,
+      "null_pct": 0.1,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "site_name": {
+      "null_count": 18013,
+      "null_pct": 81.9,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "skills": {
+      "null_count": 528,
+      "null_pct": 2.4,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "uniq_id": {
+      "null_count": 0,
+      "null_pct": 0.0,
+      "empty_count": 0,
+      "empty_pct": 0.0
+    },
+    "approximate_duplicates": 13530
+  }
+}

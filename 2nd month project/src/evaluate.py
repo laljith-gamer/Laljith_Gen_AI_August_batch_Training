@@ -19,6 +19,7 @@ from src.models.schemas import ResumeProfile
 from src.search.job_search import JobSearchEngine
 from src.mentor.rag_chain import MentorRAGChain
 from src.human_loop.feedback import FeedbackManager
+from src.search.job_repository import JobRepository
 
 logger = logging.getLogger(__name__)
 
@@ -185,12 +186,16 @@ class SystemEvaluator:
         prompt_comp = self.evaluate_prompt_comparison()
         hitl_metrics = FeedbackManager.get_feedback_metrics()
 
+        # Dataset information
+        dataset_info = JobRepository.get_dataset_info()
+
         results = {
             "timestamp": datetime.utcnow().isoformat(),
             "retrieval_evaluation": retrieval_metrics,
             "hallucination_evaluation": hallucination_metrics,
             "prompt_comparison": prompt_comp,
             "hitl_feedback_metrics": hitl_metrics,
+            "dataset_info": dataset_info,
         }
 
         # Save JSON results
@@ -242,6 +247,14 @@ class SystemEvaluator:
 - **Total Job Feedback:** {hitl_metrics['total_job_feedback']} (Relevance Rate: {hitl_metrics['job_relevance_rate'] * 100:.1f}%)
 - **Total Mentor Feedback:** {hitl_metrics['total_mentor_feedback']} (Helpfulness Rate: {hitl_metrics['mentor_helpfulness_rate'] * 100:.1f}%)
 - **CV Suggestions Actions:** {hitl_metrics['total_cv_actions']} (Accepted: {hitl_metrics['cv_accepted']}, Edited: {hitl_metrics['cv_edited']}, Rejected: {hitl_metrics['cv_rejected']})
+
+---
+
+## 5. Dataset Information
+- **Dataset Mode:** {dataset_info.get('mode', 'unknown')}
+- **Source:** {dataset_info.get('source_label', 'unknown')}
+- **Jobs Indexed:** {dataset_info.get('job_count', 0)}
+- **Dataset Path:** {dataset_info.get('path', 'unknown')}
 """)
 
         logger.info(f"Full evaluation completed. Reports written to {REPORTS_DIR}")

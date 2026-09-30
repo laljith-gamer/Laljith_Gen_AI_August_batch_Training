@@ -14,6 +14,7 @@ from src.models.enums import ReviewStatus, WorkflowState
 from src.generate.cv_suggestions import CVSuggestionEngine
 from src.human_loop.feedback import FeedbackManager
 from src.human_loop.audit import AuditLogger
+from src.search.job_repository import JobRepository
 from app.state import AppStateManager
 from app.ui import render_page_header, render_badge, render_skill_chips_html
 
@@ -47,20 +48,13 @@ def render_cv_review():
     job_options = {}
     selected_job: Optional[JobPosting] = st.session_state.get("selected_job_for_cv")
 
-    if settings.JOBS_DATA_PATH.exists():
-        df = pd.read_csv(settings.JOBS_DATA_PATH)
-        for _, row in df.iterrows():
-            label = f"{row['title']} — {row['company']} ({row['location']})"
-            skills = [s.strip() for s in str(row.get('skills', '')).split(",") if s.strip()]
-            posting = JobPosting(
-                job_id=str(row['job_id']),
-                title=str(row['title']),
-                company=str(row['company']),
-                location=str(row['location']),
-                skills=skills,
-                description=str(row['description']),
-            )
+    try:
+        all_jobs = JobRepository.load_active_jobs()
+        for posting in all_jobs:
+            label = f"{posting.title} — {posting.company} ({posting.location})"
             job_options[label] = posting
+    except FileNotFoundError as e:
+        st.warning(str(e))
 
     # Target Job Selector Card
     target_labels = list(job_options.keys())

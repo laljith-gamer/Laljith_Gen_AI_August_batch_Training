@@ -136,7 +136,18 @@ def find_first(target: Path, names: set[str]) -> Path | None:
 def print_size(path: Path) -> None:
     if path.is_file():
         size_mb = path.stat().st_size / (1024 * 1024)
-        print(f"[READY]    {path} ({size_mb:.2f} MB)")
+        row_count_str = ""
+        if path.suffix.lower() == ".csv":
+            try:
+                import csv
+                with path.open("r", encoding="utf-8-sig", newline="", errors="ignore") as f:
+                    reader = csv.reader(f)
+                    next(reader, None)  # header
+                    count = sum(1 for _ in reader)
+                row_count_str = f" | {count:,} rows"
+            except Exception:
+                pass
+        print(f"[READY]    {path} ({size_mb:.2f} MB{row_count_str})")
         return
 
     total = sum(p.stat().st_size for p in path.rglob("*") if p.is_file())

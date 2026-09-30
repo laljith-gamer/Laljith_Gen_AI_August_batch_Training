@@ -11,6 +11,7 @@ from src.models.enums import WorkflowState
 from src.search.job_search import JobSearchEngine
 from src.human_loop.feedback import FeedbackManager
 from src.human_loop.audit import AuditLogger
+from src.search.job_repository import JobRepository
 from app.state import AppStateManager
 from app.ui import render_page_header, render_badge, render_skill_chips_html
 
@@ -21,6 +22,17 @@ def render_job_matches():
         title="Matching opportunities",
         description="Explore verified roles matched against your confirmed profile using semantic vector search.",
     )
+
+    # Dataset info indicator
+    try:
+        ds_info = JobRepository.get_dataset_info()
+        job_count = ds_info.get("job_count", 21739)
+        st.caption(
+            f":material/database: **Job corpus:** Kaggle Naukri ({job_count:,} postings) · "
+            f"**Search:** Semantic FAISS Vector Index"
+        )
+    except Exception:
+        pass
 
     if not AppStateManager.is_profile_approved():
         with st.container(border=True):

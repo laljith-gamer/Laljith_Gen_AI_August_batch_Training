@@ -194,27 +194,65 @@ smarthire-genai/
 │       ├── feedback.py                # Telemetry logging & feedback metrics
 │       └── audit.py                   # Secret-scrubbed audit logging
 │
+├── scripts/
+│   ├── build_job_index.py                # FAISS index builder (dataset-mode aware)
+│   ├── build_mentor_index.py             # Mentor RAG knowledge base builder
+│   ├── download_kaggle_datasets.py       # Kaggle CLI dataset downloader
+│   ├── prepare_kaggle_jobs.py            # Naukri raw → normalized pipeline
+│   └── generate_report_pdf.py            # Report PDF generator
+│
+├── src/
+│   ├── config.py                         # Settings, paths, dataset mode config
+│   ├── evaluate.py                       # Evaluation suite with dataset reporting
+│   ├── models/schemas.py                 # Pydantic models (JobPosting, ResumeProfile, etc.)
+│   ├── search/
+│   │   ├── embed.py                      # Gemini embeddings with caching
+│   │   ├── faiss_store.py                # FAISS IndexFlatIP persistence
+│   │   ├── job_search.py                 # Semantic job matching engine
+│   │   └── job_repository.py             # Centralized job data access layer
+│   ├── human_loop/                       # HITL approval state machine
+│   ├── mentor/                           # RAG career mentor chain
+│   ├── generate/                         # CV improvement engine
+│   ├── safety/                           # Guardrails & prompt injection defense
+│   └── parsing/                          # Resume document loaders
+│
+├── data/
+│   ├── jobs/
+│   │   ├── jobs_demo.csv                 # 20-role curated demo dataset
+│   │   ├── jobs_kaggle_naukri.csv        # Normalized Kaggle Naukri corpus (generated)
+│   │   └── dataset_metadata.json         # Pipeline metadata (generated)
+│   ├── raw/kaggle/                       # Raw downloaded Kaggle files (not committed)
+│   ├── career_notes/                     # RAG knowledge base documents
+│   ├── feedback/                         # HITL feedback logs
+│   └── resumes/                          # Sample resume documents
+│
+├── vectorstore/
+│   ├── jobs/                             # FAISS job index + metadata
+│   ├── mentor/                           # FAISS mentor index + metadata
+│   └── embedding_cache.json             # Persistent embedding cache
+│
 ├── app/
-│   ├── streamlit_app.py               # Main Streamlit web application
-│   ├── state.py                       # Reactive session state manager
-│   └── components/                    # Modular Streamlit UI components
+│   ├── streamlit_app.py                  # Main Streamlit application (with health checks)
+│   ├── state.py                          # Reactive session state manager
+│   └── components/                       # Modular Streamlit UI components
 │       ├── profile_review.py
-│       ├── job_cards.py
-│       ├── cv_review.py
+│       ├── job_cards.py                  # Job search (with dataset indicator)
+│       ├── cv_review.py                  # Resume Studio (uses JobRepository)
 │       └── mentor_chat.py
 │
-├── tests/                             # Automated test suite (Pytest)
-│   ├── test_parser.py                 # Loader & Pydantic validation tests
-│   ├── test_embeddings.py             # Embedding normalization & caching tests
-│   ├── test_job_search.py             # FAISS retrieval & skill overlap tests
-│   ├── test_human_loop.py             # State machine & approval enforcement tests
-│   ├── test_guardrails.py             # Prompt injection & scope defense tests
-│   ├── test_rag.py                    # RAG retrieval, citations & refusal tests
-│   └── test_e2e_smoke.py              # Full end-to-end user journey smoke test
+├── tests/                                # Automated test suite (Pytest)
+│   ├── test_dataset_pipeline.py          # Dataset pipeline, modes, repository tests
+│   ├── test_parser.py                    # Loader & Pydantic validation tests
+│   ├── test_embeddings.py                # Embedding normalization & caching tests
+│   ├── test_job_search.py                # FAISS retrieval & skill overlap tests
+│   ├── test_human_loop.py                # State machine & approval enforcement tests
+│   ├── test_guardrails.py                # Prompt injection & scope defense tests
+│   ├── test_rag.py                       # RAG retrieval, citations & refusal tests
+│   └── test_e2e_smoke.py                 # Full end-to-end user journey smoke test
 │
 └── reports/
-    ├── evaluation_results.json        # Machine-readable benchmark telemetry
-    └── answer_quality.md              # Formatted evaluation & quality report
+    ├── evaluation_results.json           # Machine-readable benchmark telemetry
+    └── answer_quality.md                 # Formatted evaluation & quality report
 ```
 
 ---
@@ -280,50 +318,81 @@ Open your browser at `http://localhost:8501`.
 
 ---
 
-## External Dataset Acquisition
+## Dataset Pipeline
 
-SmartHire keeps downloaded third-party datasets under `data/raw/kaggle/` so raw source data stays separate from the application's normalized/demo data.
+The **primary job corpus** is the Kaggle Naukri dataset (`PromptCloudHQ/jobs-on-naukricom`), a pre-collected ~22,000-listing sample of Indian tech job postings. **Live scraping of LinkedIn/Naukri is NOT used.**
 
-### Kaggle sources
+### Pipeline Flow
+
+```text
+Kaggle Naukri Dataset (PromptCloudHQ/jobs-on-naukricom)
+    → Raw Download (scripts/download_kaggle_datasets.py --dataset naukri)
+    → Raw Validation
+    → Normalization (scripts/prepare_kaggle_jobs.py)
+    → Prepared Job Corpus (data/jobs/jobs_kaggle_naukri.csv)
+    → Gemini Embeddings (gemini-embedding-001, 3072 dims)
+    → FAISS IndexFlatIP (scripts/build_job_index.py --force)
+    → Semantic Job Search
+    → Resume Studio
+```
+
+### Exact Commands
+
+```bash
+# Step 1: Download raw Kaggle dataset (requires Kaggle CLI authentication)
+python scripts/download_kaggle_datasets.py --dataset naukri
+
+# Step 2: Normalize raw dataset to application schema
+python scripts/prepare_kaggle_jobs.py
+
+# Step 3: Build FAISS semantic search index
+python scripts/build_job_index.py --force
+
+# Step 4: Set dataset mode (add to .env or set environment variable)
+# JOB_DATA_MODE=raw_kaggle   # Use full Kaggle Naukri corpus
+# JOB_DATA_MODE=curated_demo # Use 20-role demo dataset (default)
+
+# Step 5: Launch application
+streamlit run app/streamlit_app.py
+```
+
+### Dataset Modes
+
+| Mode | Dataset | Jobs | Use Case |
+|---|---|---|---|
+| `raw_kaggle` | Kaggle Naukri normalized corpus | ~22,000 | **Production / Assignment demo** |
+| `curated_demo` | 20 curated tech roles | 20 | Development / Unit testing |
+
+Set via `JOB_DATA_MODE` in `.env` or as an environment variable. Default: `curated_demo`.
+
+The system does **NOT** silently fall back from `raw_kaggle` to the demo dataset. If the Kaggle corpus is not prepared, a clear diagnostic message is shown with exact commands to fix it.
+
+### Column Mapping (Naukri Raw → App Schema)
+
+| Raw Kaggle Column | Application Column |
+|---|---|
+| `jobtitle` | `title` |
+| `company` | `company` |
+| `joblocation_address` | `location` |
+| `skills` | `skills` |
+| `jobdescription` | `description` |
+| `jobid` | `source_record_id` |
+
+### Data Provenance
+
+- Kaggle corpus rows: `source=kaggle_naukri`, `source_dataset=PromptCloudHQ/jobs-on-naukricom`
+- Demo dataset rows: `source=curated_demo`
+
+### External Kaggle Sources
 
 | Dataset | Kaggle source | Local destination | Use |
 |---|---|---|---|
-| Resume Dataset | `snehaanbhawal/resume-dataset` | `data/raw/kaggle/resumes/` | Resume exploration and dynamic structured extraction |
-| Jobs on Naukri.com | `PromptCloudHQ/jobs-on-naukricom` | `data/raw/kaggle/jobs/` | Job-corpus experiments and normalization |
-| LinkedIn Job Postings (2023–2024) | `arshkon/linkedin-job-postings` | `data/raw/kaggle/linkedin/` | Optional larger job-corpus experiments |
+| Resume Dataset | `snehaanbhawal/resume-dataset` | `data/raw/kaggle/resumes/` | Resume exploration |
+| **Jobs on Naukri.com** | **`PromptCloudHQ/jobs-on-naukricom`** | **`data/raw/kaggle/jobs/`** | **Primary job corpus** |
+| LinkedIn Job Postings | `arshkon/linkedin-job-postings` | `data/raw/kaggle/linkedin/` | Optional experiments |
 
-The resume dataset contains 2,400+ resumes and a CSV with `ID`, `Resume_str`, `Resume_html`, and `Category`. The Naukri dataset is the 22,000-listing sample containing fields such as company, job title, location, skills, and job description. The LinkedIn dataset is much larger (124,000+ postings in the current Kaggle snapshot), so it is optional for local experiments rather than a default application dependency.
-
-### Download
-
-Install/authenticate the official Kaggle CLI, then run from `2nd month project/`:
-
-```bash
-python -m pip install -U kaggle
-kaggle auth login
-```
-
-Download the datasets needed by SmartHire:
-
-```bash
-python scripts/download_kaggle_datasets.py --dataset resume,naukri
-```
-
-Download the larger LinkedIn corpus separately:
-
-```bash
-python scripts/download_kaggle_datasets.py --dataset linkedin
-```
-
-Or download all three:
-
-```bash
-python scripts/download_kaggle_datasets.py --dataset all
-```
-
-Raw Kaggle files are intentionally not copied over `data/jobs/jobs.csv` automatically. The existing `data/jobs/jobs.csv` is a 20-role application-ready corpus with the schema expected by `scripts/build_job_index.py`. A future import/normalization step should transform a raw Kaggle job source before rebuilding FAISS.
-
-For source details and storage notes, see `data/raw/kaggle/README.md`.
+Raw Kaggle files are stored separately under `data/raw/kaggle/` and are **not** committed to Git.
+The normalization pipeline transforms raw data into `data/jobs/jobs_kaggle_naukri.csv` with the application's standard schema.
 
 ---
 

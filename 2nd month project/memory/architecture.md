@@ -3,6 +3,55 @@
 ## Overview
 SmartHire GenAI is an end-to-end career intelligence portal designed to provide resume parsing with Human-in-the-Loop (HITL) approval, semantic job matching using FAISS vector search, AI-driven CV improvement recommendations, and a grounded AI Career Mentor chatbot using Retrieval-Augmented Generation (RAG).
 
+## Dataset Pipeline Architecture
+```text
+Kaggle Naukri Dataset (PromptCloudHQ/jobs-on-naukricom)
+        │
+        ▼
+Raw Dataset Download (scripts/download_kaggle_datasets.py)
+        │
+        ▼
+data/raw/kaggle/jobs/naukri_com-job_sample.csv
+        │
+        ▼
+Normalization Pipeline (scripts/prepare_kaggle_jobs.py)
+  • Column mapping (jobtitle→title, joblocation_address→location, etc.)
+  • Text cleaning (HTML removal, whitespace normalization)
+  • Duplicate removal (deterministic MD5 key)
+  • Provenance tagging (source=kaggle_naukri)
+        │
+        ▼
+data/jobs/jobs_kaggle_naukri.csv (normalized application-ready corpus)
+        │
+        ▼
+Embedding Generation (gemini-embedding-001, 3072 dims)
+        │
+        ▼
+FAISS IndexFlatIP (scripts/build_job_index.py)
+  • Index versioning (dataset hash, staleness detection)
+  • Metadata persistence (metadata.pkl + index_metadata.json)
+        │
+        ▼
+vectorstore/jobs/ (index.faiss + metadata.pkl + index_metadata.json)
+        │
+        ▼
+Semantic Job Search (src/search/job_search.py)
+        │
+        ▼
+Resume Matching → Resume Studio
+```
+
+## Dataset Modes
+- **raw_kaggle**: Uses the Kaggle Naukri normalized corpus (~22K listings)
+- **curated_demo**: Uses the 20-role demo dataset for testing/development
+- Controlled via `JOB_DATA_MODE` environment variable
+- Both modes use the same FAISS pipeline and job repository
+
+## Centralized Job Access
+- `src/search/job_repository.py`: Single source of truth for job data
+- Used by Job Search, Resume Studio, and Evaluation
+- Provides dataset health checks and staleness detection
+
 ## High-Level Architecture Flow
 ```text
 Resume Upload (PDF/DOCX)
@@ -11,70 +60,43 @@ Resume Upload (PDF/DOCX)
 Document Loader & Normalization
         │
         ▼
-Gemini 3.8 Flash Structured Parser (Pydantic Schema)
+Gemini Structured Parser (Pydantic Schema)
         │
         ▼
    ┌────────────────────────────────┐
    │ HUMAN-IN-THE-LOOP REVIEW       │
    │ State: REQUIRES_REVIEW         │
    │ Actions: Approve / Edit / Reset│
-   └───────────────┬────────────────┘
+   └────────────────┬───────────────┘
                    │
                    ▼
          Approved Candidate Profile
-         (Status: APPROVED)
                    │
-         ┌─────────┴────────────────────────┐
+         ┌─────────┴────────────────────┐
          │                                  │
          ▼                                  ▼
 Profile Embedding                  Target Job Selection
-(gemini-embedding-001)                      │
-         │                                  ▼
-         ▼                          CV Improvement Engine
-FAISS Job Search                     (Gemini 3.8 Flash)
+(gemini-embedding-001)             (from active job corpus)
          │                                  │
          ▼                                  ▼
-Top-N Semantic Job Matches         ┌───────────────────────────────┐
-         │                         │ HUMAN-IN-THE-LOOP CV REVIEW   │
-         ▼                         │ Actions: Accept / Edit /      │
-Display & Relevance Feedback       │          Reject / Regenerate  │
-                                   └───────────────┬───────────────┘
-                                                   │
-                                                   ▼
-                                         Final Tailored CV Plan
-
-                                   ┌───────────────────────────────┐
-                                   │ AI CAREER MENTOR (RAG)        │
-                                   └───────────────┬───────────────┘
-                                                   │
-                                                   ▼
-                                        Safety & Scope Guardrails
-                                        (Prompt Injection Defense)
-                                                   │
-                                                   ▼
-                                        Query Embedding & Retriever
-                                        (FAISS Knowledge Index)
-                                                   │
-                                                   ▼
-                                        Context Assembly & Grounding
-                                                   │
-                                                   ▼
-                                        Gemini 3.8 Flash Generation
-                                                   │
-                                                   ▼
-                                        Grounded Answer + Citations
-                                                   │
-                                                   ▼
-                                        User Feedback (Helpful / Unhelpful)
+FAISS Job Search                   CV Improvement Engine
+(IndexFlatIP - Cosine)             (Gemini)
+         │                                  │
+         ▼                                  ▼
+Top-N Semantic Matches             HITL CV Review
+         │
+         ▼
+Relevance Feedback
 ```
 
 ## Subsystems
-1. **Resume Parser**: Multi-format document loading (`pypdf`, `python-docx`), text cleaning, Pydantic structured output validation with `gemini-3.8-flash`.
-2. **HITL Profile Review**: Explicit state machine preventing unapproved data propagation. User can edit any extracted field, compare against AI output, and approve.
-3. **Embeddings & Vector Store**: `gemini-embedding-001` (3072 dims) with caching layer and local TF-IDF cosine fallback; persistent FAISS index for jobs and career notes.
-4. **Semantic Job Search**: Queries job index with approved profile, computes semantic similarity scores, extracts matched and missing skills.
-5. **CV Improvement Studio**: Targets selected job with structured prompt library to identify missing skills, weak bullet points, rewrite summary and bullets, strictly without hallucinating candidate qualifications.
-6. **AI Career Mentor**: RAG chatbot grounded strictly on knowledge base documents (career roadmaps, guides, job postings). Responds "I don't know based on the available documents" when unsupported.
-7. **Guardrails & Security**: Pre-generation guardrails against prompt injection, credential exfiltration, fake credentials, and off-topic requests.
-8. **Evaluation Suite**: Automated tests for retrieval hit rate, answer grounding, prompt comparison, hallucination refusal, and HITL metrics.
-9. **Streamlit UI**: Full-featured interactive dashboard with persistent session state, feedback logging, and workflow control.
+1. **Resume Parser**: Multi-format document loading, Pydantic structured output validation.
+2. **HITL Profile Review**: Explicit state machine preventing unapproved data propagation.
+3. **Embeddings & Vector Store**: `gemini-embedding-001` (3072 dims) with caching; persistent FAISS index.
+4. **Job Data Repository**: Centralized access layer supporting dataset modes and health checks.
+5. **Semantic Job Search**: FAISS queries with cosine similarity, skill overlap, and explanations.
+6. **CV Improvement Studio**: Job-targeted improvements with anti-hallucination constraints.
+7. **AI Career Mentor**: RAG chatbot grounded in career roadmaps with citations.
+8. **Guardrails & Security**: Prompt injection defense and scope validation.
+9. **Evaluation Suite**: Automated tests for retrieval, grounding, and dataset validation.
+10. **Streamlit UI**: Interactive dashboard with dataset health indicators.

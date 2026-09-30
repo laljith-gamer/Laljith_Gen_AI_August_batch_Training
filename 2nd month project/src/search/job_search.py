@@ -62,7 +62,11 @@ class JobSearchEngine:
         return "\n".join(parts)
 
     @staticmethod
-    def calculate_skill_overlap(candidate_skills: List[str], job_skills: List[str]):
+    def calculate_skill_overlap(
+        candidate_skills: List[str],
+        job_skills: List[str],
+        job_text: str = "",
+    ):
         cand_map = {re.sub(r"[^\w]", "", s.lower()): s for s in candidate_skills if s}
         job_map = {re.sub(r"[^\w]", "", s.lower()): s for s in job_skills if s}
 
@@ -81,6 +85,14 @@ class JobSearchEngine:
                         break
                 if not matched_sub:
                     missing.append(orig_job_skill)
+
+        # In real-world job postings, candidate skills also appear in title & description
+        if job_text:
+            text_lower = job_text.lower()
+            for clean_cand_skill, orig_cand_skill in cand_map.items():
+                if len(clean_cand_skill) >= 2 and re.search(r'\b' + re.escape(orig_cand_skill.lower()) + r'\b', text_lower):
+                    if orig_cand_skill not in matched:
+                        matched.append(orig_cand_skill)
 
         return matched, missing
 
@@ -129,7 +141,9 @@ class JobSearchEngine:
                 if location_filter.lower() not in job.location.lower():
                     continue
 
-            matched_skills, missing_skills = self.calculate_skill_overlap(approved.skills, job.skills)
+            matched_skills, missing_skills = self.calculate_skill_overlap(
+                approved.skills, job.skills, job_text=f"{job.title} {job.description}"
+            )
 
             explanation = (
                 f"Strong semantic alignment with {job.title} at {job.company}. "

@@ -143,19 +143,52 @@ class Settings:
 
     PROJECT_ROOT: Path = PROJECT_ROOT
     DATA_DIR: Path = PROJECT_ROOT / "data"
-    JOBS_DATA_PATH: Path = PROJECT_ROOT / Path(os.getenv("JOBS_DATA_PATH", "data/jobs/jobs.csv"))
     RESUMES_DIR: Path = PROJECT_ROOT / "data/resumes"
     CAREER_NOTES_DIR: Path = PROJECT_ROOT / Path(os.getenv("CAREER_NOTES_DIR", "data/career_notes"))
     VECTORSTORE_DIR: Path = PROJECT_ROOT / "vectorstore"
     JOB_INDEX_DIR: Path = PROJECT_ROOT / Path(os.getenv("JOB_INDEX_DIR", "vectorstore/jobs"))
     MENTOR_INDEX_DIR: Path = PROJECT_ROOT / Path(os.getenv("MENTOR_INDEX_DIR", "vectorstore/mentor"))
     FEEDBACK_DIR: Path = PROJECT_ROOT / Path(os.getenv("FEEDBACK_DIR", "data/feedback"))
+    RAW_KAGGLE_JOBS_DIR: Path = PROJECT_ROOT / "data" / "raw" / "kaggle" / "jobs"
+    RAW_KAGGLE_RESUMES_DIR: Path = PROJECT_ROOT / "data" / "raw" / "kaggle" / "resumes"
+
+    @property
+    def JOB_DATA_MODE(self) -> str:
+        return str(get_secret("JOB_DATA_MODE", "raw_kaggle")).strip().lower()
+
+    @property  
+    def JOBS_DATA_PATH(self) -> Path:
+        mode = self.JOB_DATA_MODE
+        if mode == "curated_demo":
+            return self.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
+        # Production mode: Kaggle Naukri corpus
+        kaggle_path = self.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
+        if kaggle_path.exists():
+            return kaggle_path
+        return self.PROJECT_ROOT / "data" / "jobs" / "jobs.csv"
+
+    @property
+    def NORMALIZED_JOBS_PATH(self) -> Path:
+        return self.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
+
+    @property
+    def DEMO_JOBS_PATH(self) -> Path:
+        return self.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
+
+    @property
+    def DATASET_METADATA_PATH(self) -> Path:
+        return self.PROJECT_ROOT / "data" / "jobs" / "dataset_metadata.json"
+
+    @property
+    def INDEX_METADATA_PATH(self) -> Path:
+        return self.JOB_INDEX_DIR / "index_metadata.json"
 
     @classmethod
     def ensure_directories(cls):
         for d in [cls.DATA_DIR, cls.RESUMES_DIR, cls.CAREER_NOTES_DIR,
                   cls.VECTORSTORE_DIR, cls.JOB_INDEX_DIR, cls.MENTOR_INDEX_DIR,
-                  cls.FEEDBACK_DIR, cls.PROJECT_ROOT / "data/jobs"]:
+                  cls.FEEDBACK_DIR, cls.PROJECT_ROOT / "data/jobs",
+                  cls.RAW_KAGGLE_JOBS_DIR, cls.RAW_KAGGLE_RESUMES_DIR]:
             d.mkdir(parents=True, exist_ok=True)
 
 

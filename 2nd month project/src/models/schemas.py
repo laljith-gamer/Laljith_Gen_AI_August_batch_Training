@@ -71,11 +71,12 @@ class JobPosting(BaseModel):
     """Internal standardized representation of a job posting."""
     job_id: str
     title: str
-    company: str
-    location: str
+    company: str = ""
+    location: str = ""
     skills: List[str] = Field(default_factory=list)
     description: str
-    source: str = "curated_dataset"
+    source: str = "kaggle_naukri"
+    source_dataset: str = "PromptCloudHQ/jobs-on-naukricom"
 
 class JobMatchResult(BaseModel):
     """Match result combining job posting and semantic evaluation."""
