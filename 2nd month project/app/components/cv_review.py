@@ -44,31 +44,59 @@ def render_cv_review():
 
     profile = AppStateManager.get_approved_profile()
 
-    # Load available jobs for target selection
-    job_options = {}
+    # Load candidate target jobs with full-corpus search capability
     selected_job: Optional[JobPosting] = st.session_state.get("selected_job_for_cv")
 
-    try:
-        all_jobs = JobRepository.load_active_jobs()
-        for posting in all_jobs:
+    with st.container(border=True):
+        st.markdown("##### Target position")
+        st.caption("Select a role from your job search matches or search across the full 21,739 Kaggle Naukri corpus.")
+
+        search_col, sel_col, nav_col = st.columns([2, 3, 1])
+        with search_col:
+            job_search_kw = st.text_input(
+                "Filter roles by title or skill",
+                placeholder="e.g. Data Analyst, Cloud, Python",
+                label_visibility="collapsed",
+                key="input_cv_job_search_filter",
+            )
+
+        # Build candidate jobs list from search query or recommendations
+        candidate_jobs: List[JobPosting] = []
+        if selected_job:
+            candidate_jobs.append(selected_job)
+
+        if job_search_kw and job_search_kw.strip():
+            results = JobRepository.search_jobs_by_query(job_search_kw.strip(), limit=50)
+            for j in results:
+                if j.job_id not in [x.job_id for x in candidate_jobs]:
+                    candidate_jobs.append(j)
+        else:
+            # Include matched jobs from Job Search if available
+            matches = st.session_state.get("job_matches")
+            if matches:
+                for m in matches:
+                    if m.job.job_id not in [x.job_id for x in candidate_jobs]:
+                        candidate_jobs.append(m.job)
+            # Add representative roles from full corpus
+            popular_jobs = JobRepository.get_popular_target_jobs(limit=40)
+            for j in popular_jobs:
+                if j.job_id not in [x.job_id for x in candidate_jobs]:
+                    candidate_jobs.append(j)
+
+        job_options = {}
+        for posting in candidate_jobs:
             label = f"{posting.title} — {posting.company} ({posting.location})"
             job_options[label] = posting
-    except FileNotFoundError as e:
-        st.warning(str(e))
 
-    # Target Job Selector Card
-    target_labels = list(job_options.keys())
-    default_idx = 0
-    if selected_job:
-        for idx, lbl in enumerate(target_labels):
-            if job_options[lbl].job_id == selected_job.job_id:
-                default_idx = idx
-                break
+        target_labels = list(job_options.keys())
+        default_idx = 0
+        if selected_job:
+            for idx, lbl in enumerate(target_labels):
+                if job_options[lbl].job_id == selected_job.job_id:
+                    default_idx = idx
+                    break
 
-    with st.container(border=True):
-        sel_col1, sel_col2 = st.columns([3, 1])
-        with sel_col1:
-            st.markdown("##### Target position")
+        with sel_col:
             chosen_label = st.selectbox(
                 "Select target job:",
                 options=target_labels,
@@ -77,9 +105,9 @@ def render_cv_review():
                 label_visibility="collapsed",
                 key="select_target_job_dropdown",
             )
-        with sel_col2:
-            st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
-            if st.button("Back to job matches", key="btn_cv_back_to_jobs"):
+
+        with nav_col:
+            if st.button("Browse jobs →", key="btn_cv_back_to_jobs", help="View semantic job matches"):
                 AppStateManager.set_active_view("Jobs")
                 st.rerun()
 

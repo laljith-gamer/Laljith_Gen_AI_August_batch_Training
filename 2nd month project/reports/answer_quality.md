@@ -1,6 +1,6 @@
 # SmartHire GenAI - Answer Quality & Evaluation Report
 
-**Generated:** 2026-09-25T09:09:22.527586
+**Generated:** 2026-09-30T16:57:00.083090
 
 ## 1. Retrieval Relevance Benchmark
 - **Total Test Queries:** 5
@@ -10,11 +10,11 @@
 ### Retrieval Query Breakdown
 | Target Role | Retrieved Titles | Hit |
 | :--- | :--- | :--- |
-| Data Analyst | Data Analyst, Analytics Engineer | ✅ Yes |
-| Machine Learning Engineer | Machine Learning Engineer, Analytics Engineer | ✅ Yes |
-| Senior Backend Developer | Senior Backend Developer, Senior Generative AI Engineer | ✅ Yes |
-| Cybersecurity Analyst | Cybersecurity Incident Analyst, Site Reliability Engineer (SRE) | ✅ Yes |
-| Analytics Engineer | Analytics Engineer, Data Platform Engineer | ✅ Yes |
+| Data Analyst | Analytics Engineer Openings Based out in Bangalore, Lead Data Engineer - Commercial Analytics | Yes |
+| Machine Learning Engineer | Analytics Engineer Openings Based out in Bangalore, Machine Learning & NLP Expert -candidates From Premier Institutes Only | Yes |
+| Senior Backend Developer | Sr.java Developer(server side JAVA Programming), Sr.java Developer | Yes |
+| Cybersecurity Analyst | DPI Sr. System Analyst Position with a Telecom Product Based org., Information Security Engineer - Contract to Hire - Bangalore | Yes |
+| Analytics Engineer | Analytics Engineer Openings Based out in Bangalore, Lead Data Engineer - Commercial Analytics | Yes |
 
 ---
 
@@ -32,11 +32,21 @@
 - **Query Tested:** "How should I structure bullet points on my resume?"
 - **Naive Prompt Behavior:** Generic advice without document traceability, prone to fabricating metrics.
 - **Grounded Prompt Behavior:** Restricted strictly to the XYZ formula from resume_writing_guide.txt with traceable citations.
-- **Citations Generated:** Resume Writing Guide, Data Analyst Roadmap, Resume Writing Guide, Resume Writing Guide
+- **Citations Generated:** Resume Writing Guide, Data Analyst Roadmap, Resume Writing Guide
 
 ---
 
 ## 4. Human-in-the-Loop Feedback Telemetry
-- **Total Job Feedback:** 31 (Relevance Rate: 100.0%)
-- **Total Mentor Feedback:** 31 (Helpfulness Rate: 100.0%)
-- **CV Suggestions Actions:** 18 (Accepted: 18, Edited: 0, Rejected: 0)
+- **Total Job Feedback:** 66 (Relevance Rate: 100.0%)
+- **Total Mentor Feedback:** 66 (Helpfulness Rate: 100.0%)
+- **CV Suggestions Actions:** 33 (Accepted: 33, Edited: 0, Rejected: 0)
+
+---
+
+## 5. Dataset Information
+- **Dataset Mode:** raw_kaggle
+- **Dataset Source:** Kaggle Naukri Production Corpus (PromptCloudHQ/jobs-on-naukricom)
+- **Prepared Jobs in Corpus:** 21,739
+- **Jobs Indexed in FAISS:** 500
+- **Index Status:** Partial Development Subset (500 / 21,739 indexed)
+- **Dataset Path:** C:\Users\ASUS\Desktop\personal\genai-inter\2nd month project\data\jobs\jobs_kaggle_naukri.csv

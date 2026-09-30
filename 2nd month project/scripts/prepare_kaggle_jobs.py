@@ -319,17 +319,29 @@ def prepare_kaggle_jobs(
 
     # ── Step 11: Save metadata ───────────────────────────────────────────
     file_hash = hashlib.md5(OUTPUT_PATH.read_bytes()).hexdigest()
+    try:
+        raw_rel = str(raw_path.relative_to(PROJECT_ROOT)).replace("\\", "/")
+    except ValueError:
+        raw_rel = "data/raw/kaggle/jobs/naukri_com-job_sample.csv"
+
+    try:
+        output_rel = str(OUTPUT_PATH.relative_to(PROJECT_ROOT)).replace("\\", "/")
+    except ValueError:
+        output_rel = "data/jobs/jobs_kaggle_naukri.csv"
+
     metadata = {
         "dataset_name": "Kaggle Naukri Job Postings",
         "source": SOURCE_NAME,
         "source_dataset": SOURCE_DATASET,
-        "raw_file": str(raw_path),
+        "raw_file": raw_rel,
+        "raw_file_abs": str(raw_path),
         "raw_row_count": len(df_raw),
         "filtered_count": filtered_count,
         "duplicate_count": duplicate_count,
         "normalized_row_count": len(df_out),
         "columns_used": final_cols,
-        "output_file": str(OUTPUT_PATH),
+        "output_file": output_rel,
+        "output_file_abs": str(OUTPUT_PATH),
         "output_hash": file_hash,
         "max_rows_applied": max_rows,
         "prepared_at": datetime.now(timezone.utc).isoformat(),

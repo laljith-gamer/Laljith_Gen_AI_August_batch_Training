@@ -53,10 +53,17 @@ class JobRepository:
 
         if not path.exists():
             mode = cls.get_dataset_mode()
-            raise FileNotFoundError(
-                f"Kaggle Naukri normalized production dataset not found at {path}.\n"
-                f"Run: python scripts/prepare_kaggle_jobs.py"
-            )
+            if mode == "raw_kaggle":
+                raise FileNotFoundError(
+                    f"Normalized Kaggle Naukri job corpus not found at {path}.\n"
+                    f"Run: python scripts/download_kaggle_datasets.py --dataset naukri && python scripts/prepare_kaggle_jobs.py"
+                )
+            elif mode == "curated_demo":
+                raise FileNotFoundError(
+                    f"Curated demo job corpus not found at {path}.\n"
+                    f"Ensure data/jobs/jobs_demo.csv exists."
+                )
+            raise FileNotFoundError(f"Job dataset not found at {path} for mode: {mode}")
 
         df = pd.read_csv(path)
         cls._cache = df
@@ -70,6 +77,60 @@ class JobRepository:
         df = cls.load_jobs_dataframe()
         jobs = []
         for _, row in df.iterrows():
+            skills_raw = str(row.get("skills", ""))
+            skills_list = [s.strip() for s in skills_raw.split(",") if s.strip()]
+            jobs.append(JobPosting(
+                job_id=str(row.get("job_id", "")),
+                title=str(row.get("title", "")),
+                company=str(row.get("company", "")),
+                location=str(row.get("location", "")),
+                skills=skills_list,
+                description=str(row.get("description", "")),
+                source=str(row.get("source", "unknown")),
+                source_dataset=str(row.get("source_dataset", "")),
+            ))
+        return jobs
+
+    @classmethod
+    def search_jobs_by_query(cls, query: str, limit: int = 50) -> List[JobPosting]:
+        """Search jobs in the active dataset matching query terms in title, skills, or company."""
+        df = cls.load_jobs_dataframe()
+        if not query or not query.strip():
+            return cls.get_popular_target_jobs(limit=limit)
+
+        q = query.strip().lower()
+        mask = (
+            df["title"].astype(str).str.lower().str.contains(q, regex=False, na=False)
+            | df["skills"].astype(str).str.lower().str.contains(q, regex=False, na=False)
+            | df["company"].astype(str).str.lower().str.contains(q, regex=False, na=False)
+        )
+        matched_df = df[mask].head(limit)
+        if matched_df.empty:
+            mask_desc = df["description"].astype(str).str.lower().str.contains(q, regex=False, na=False)
+            matched_df = df[mask_desc].head(limit)
+
+        jobs = []
+        for _, row in matched_df.iterrows():
+            skills_raw = str(row.get("skills", ""))
+            skills_list = [s.strip() for s in skills_raw.split(",") if s.strip()]
+            jobs.append(JobPosting(
+                job_id=str(row.get("job_id", "")),
+                title=str(row.get("title", "")),
+                company=str(row.get("company", "")),
+                location=str(row.get("location", "")),
+                skills=skills_list,
+                description=str(row.get("description", "")),
+                source=str(row.get("source", "unknown")),
+                source_dataset=str(row.get("source_dataset", "")),
+            ))
+        return jobs
+
+    @classmethod
+    def get_popular_target_jobs(cls, limit: int = 50) -> List[JobPosting]:
+        """Return the first `limit` representative jobs from the active dataset."""
+        df = cls.load_jobs_dataframe()
+        jobs = []
+        for _, row in df.head(limit).iterrows():
             skills_raw = str(row.get("skills", ""))
             skills_list = [s.strip() for s in skills_raw.split(",") if s.strip()]
             jobs.append(JobPosting(

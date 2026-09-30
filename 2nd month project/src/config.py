@@ -161,11 +161,8 @@ class Settings:
         mode = self.JOB_DATA_MODE
         if mode == "curated_demo":
             return self.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
-        # Production mode: Kaggle Naukri corpus
-        kaggle_path = self.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
-        if kaggle_path.exists():
-            return kaggle_path
-        return self.PROJECT_ROOT / "data" / "jobs" / "jobs.csv"
+        # Production mode: Kaggle Naukri corpus (strict, no silent fallback)
+        return self.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
 
     @property
     def NORMALIZED_JOBS_PATH(self) -> Path:

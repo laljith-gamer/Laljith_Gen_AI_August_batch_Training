@@ -54,23 +54,33 @@ def build_job_index(force: bool = False, limit: int | None = None):
 
     vector_store = FaissVectorStore(settings.JOB_INDEX_DIR)
     if vector_store.exists() and not force:
-        # Check staleness
+        # Check staleness and completeness
         idx_meta_path = settings.INDEX_METADATA_PATH
         if idx_meta_path.exists():
             try:
                 with open(idx_meta_path, "r", encoding="utf-8") as f:
                     idx_meta = json.load(f)
                 current_hash = hashlib.md5(csv_path.read_bytes()).hexdigest()
+                
+                # Check 1: Hash mismatch
                 if idx_meta.get("dataset_hash") != current_hash:
                     logger.warning(
                         "FAISS index was built from a different dataset version.\n"
-                        "Rebuilding automatically. Use --force to skip this check."
+                        "Rebuilding automatically."
+                    )
+                    force = True
+                # Check 2: Partial index upgrading to full index
+                elif limit is None and (idx_meta.get("is_partial_index", False) or idx_meta.get("indexed_job_count", 0) < idx_meta.get("dataset_row_count", 0)):
+                    logger.info(
+                        f"Existing index is a partial development index "
+                        f"({idx_meta.get('indexed_job_count')} / {idx_meta.get('dataset_row_count')} jobs).\n"
+                        f"Building complete production index..."
                     )
                     force = True
                 else:
                     logger.info(
                         f"FAISS index already exists at {settings.JOB_INDEX_DIR} "
-                        f"and matches current dataset. Use --force to rebuild."
+                        f"and matches current dataset ({idx_meta.get('indexed_job_count')} jobs). Use --force to rebuild."
                     )
                     return
             except Exception:
@@ -103,11 +113,15 @@ def build_job_index(force: bool = False, limit: int | None = None):
     # Drop empty descriptions
     initial_count = len(df)
     df = df[df["description"].str.strip() != ""].reset_index(drop=True)
-    logger.info(f"Ingested {len(df)} valid jobs (filtered from {initial_count} records).")
+    total_valid_jobs = len(df)
+    logger.info(f"Ingested {total_valid_jobs} valid jobs (filtered from {initial_count} records).")
 
-    if limit and limit > 0:
-        logger.info(f"Applying limit: indexing first {limit} jobs.")
+    is_partial = bool(limit and limit < total_valid_jobs)
+    if is_partial:
+        logger.info(f"Applying limit: indexing first {limit} jobs (PARTIAL / DEVELOPMENT MODE).")
         df = df.head(limit).reset_index(drop=True)
+    else:
+        logger.info(f"Indexing complete active corpus ({total_valid_jobs} jobs) for FULL PRODUCTION.")
 
     # Build semantic text representation for each job posting
     job_texts = []
@@ -139,20 +153,29 @@ def build_job_index(force: bool = False, limit: int | None = None):
 
     logger.info(f"Generating embeddings for {len(job_texts)} job postings...")
     embed_manager = EmbeddingManager()
-    vectors = embed_manager.embed_texts(job_texts)
+    vectors = embed_manager.embed_texts(job_texts, show_progress=True)
 
     logger.info(f"Building FAISS index with shape {vectors.shape}...")
     vector_store.build_index(vectors, metadata_list)
     logger.info("Job index successfully built and saved!")
 
-    # Save index metadata for staleness detection
+    # Save index metadata for staleness detection & portability
     dataset_hash = hashlib.md5(csv_path.read_bytes()).hexdigest()
+    try:
+        dataset_rel = str(csv_path.relative_to(PROJECT_ROOT)).replace("\\", "/")
+    except ValueError:
+        dataset_rel = "data/jobs/jobs_kaggle_naukri.csv"
+
     index_metadata = {
         "dataset_mode": mode,
-        "dataset_path": str(csv_path),
+        "dataset_path": dataset_rel,
+        "dataset_path_abs": str(csv_path),
         "dataset_hash": dataset_hash,
-        "dataset_row_count": len(df),
+        "dataset_row_count": total_valid_jobs,
         "indexed_job_count": len(metadata_list),
+        "is_partial_index": is_partial,
+        "limit_applied": limit if is_partial else None,
+        "status": "PARTIAL / DEVELOPMENT" if is_partial else "FULL_PRODUCTION",
         "embedding_model": settings.GEMINI_EMBEDDING_MODEL,
         "embedding_dimension": vectors.shape[1] if len(vectors) > 0 else settings.EMBEDDING_DIMENSION,
         "created_at": datetime.now(timezone.utc).isoformat(),

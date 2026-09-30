@@ -348,9 +348,8 @@ python scripts/prepare_kaggle_jobs.py
 # Step 3: Build FAISS semantic search index
 python scripts/build_job_index.py --force
 
-# Step 4: Set dataset mode (add to .env or set environment variable)
-# JOB_DATA_MODE=raw_kaggle   # Use full Kaggle Naukri corpus
-# JOB_DATA_MODE=curated_demo # Use 20-role demo dataset (default)
+# Step 4: Set dataset mode in .env (defaults to raw_kaggle)
+JOB_DATA_MODE=raw_kaggle
 
 # Step 5: Launch application
 streamlit run app/streamlit_app.py
@@ -360,10 +359,10 @@ streamlit run app/streamlit_app.py
 
 | Mode | Dataset | Jobs | Use Case |
 |---|---|---|---|
-| `raw_kaggle` | Kaggle Naukri normalized corpus | ~22,000 | **Production / Assignment demo** |
-| `curated_demo` | 20 curated tech roles | 20 | Development / Unit testing |
+| **`raw_kaggle`** (Default) | Kaggle Naukri normalized corpus | 21,739 | **Assignment / Production corpus** |
+| `curated_demo` | 20 curated tech roles | 20 | Development / Unit testing only |
 
-Set via `JOB_DATA_MODE` in `.env` or as an environment variable. Default: `curated_demo`.
+Set via `JOB_DATA_MODE` in `.env` or as an environment variable. **Default: `raw_kaggle`**.
 
 The system does **NOT** silently fall back from `raw_kaggle` to the demo dataset. If the Kaggle corpus is not prepared, a clear diagnostic message is shown with exact commands to fix it.
 

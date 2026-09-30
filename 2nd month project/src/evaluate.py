@@ -186,8 +186,29 @@ class SystemEvaluator:
         prompt_comp = self.evaluate_prompt_comparison()
         hitl_metrics = FeedbackManager.get_feedback_metrics()
 
-        # Dataset information
+        # Dynamic Dataset & FAISS telemetry
         dataset_info = JobRepository.get_dataset_info()
+        dataset_health = JobRepository.validate_dataset_health()
+
+        index_meta = {}
+        if settings.INDEX_METADATA_PATH.exists():
+            try:
+                with open(settings.INDEX_METADATA_PATH, "r", encoding="utf-8") as f:
+                    index_meta = json.load(f)
+            except Exception:
+                pass
+
+        prepared_jobs_count = dataset_health.get("dataset_row_count", dataset_info.get("job_count", 0))
+        indexed_jobs_count = index_meta.get("indexed_job_count", 0)
+        is_stale = dataset_health.get("index_stale", False)
+        is_partial = index_meta.get("is_partial_index", False) or (indexed_jobs_count < prepared_jobs_count if prepared_jobs_count else False)
+
+        if is_stale:
+            index_status = "Stale (hash mismatch — rebuild required)"
+        elif is_partial:
+            index_status = f"Partial Development Subset ({indexed_jobs_count:,} / {prepared_jobs_count:,} indexed)"
+        else:
+            index_status = f"Current / Complete Production ({indexed_jobs_count:,} indexed)"
 
         results = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -195,7 +216,13 @@ class SystemEvaluator:
             "hallucination_evaluation": hallucination_metrics,
             "prompt_comparison": prompt_comp,
             "hitl_feedback_metrics": hitl_metrics,
-            "dataset_info": dataset_info,
+            "dataset_info": {
+                **dataset_info,
+                "prepared_jobs_count": prepared_jobs_count,
+                "indexed_jobs_count": indexed_jobs_count,
+                "index_status": index_status,
+                "is_partial_index": is_partial,
+            },
         }
 
         # Save JSON results
@@ -252,8 +279,10 @@ class SystemEvaluator:
 
 ## 5. Dataset Information
 - **Dataset Mode:** {dataset_info.get('mode', 'unknown')}
-- **Source:** {dataset_info.get('source_label', 'unknown')}
-- **Jobs Indexed:** {dataset_info.get('job_count', 0)}
+- **Dataset Source:** {dataset_info.get('source_label', 'unknown')}
+- **Prepared Jobs in Corpus:** {prepared_jobs_count:,}
+- **Jobs Indexed in FAISS:** {indexed_jobs_count:,}
+- **Index Status:** {index_status}
 - **Dataset Path:** {dataset_info.get('path', 'unknown')}
 """)
 

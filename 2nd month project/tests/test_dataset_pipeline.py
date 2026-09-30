@@ -262,3 +262,84 @@ def test_no_silent_demo_substitution():
         assert "demo" not in str(path).lower(), (
             "In raw_kaggle mode, JOBS_DATA_PATH should NOT point to a demo file"
         )
+
+
+# =====================================================
+# Test 16: No fallback to generic jobs.csv in raw_kaggle mode
+# =====================================================
+def test_no_generic_jobs_csv_fallback():
+    """In raw_kaggle mode, JOBS_DATA_PATH must strictly point to jobs_kaggle_naukri.csv."""
+    from src.config import Settings
+    s = Settings()
+    with patch.dict(os.environ, {"JOB_DATA_MODE": "raw_kaggle"}):
+        path = s.JOBS_DATA_PATH
+        assert str(path).replace("\\", "/").endswith("jobs_kaggle_naukri.csv")
+
+
+# =====================================================
+# Test 17: JobRepository search_jobs_by_query across corpus
+# =====================================================
+def test_job_repository_search_query():
+    """Verify JobRepository can search jobs across the active corpus."""
+    from src.search.job_repository import JobRepository
+    results = JobRepository.search_jobs_by_query("Developer", limit=5)
+    assert len(results) > 0
+    assert any("developer" in (j.title + " " + j.description).lower() for j in results)
+
+
+# =====================================================
+# Test 18: Index metadata hash matches active dataset file
+# =====================================================
+def test_index_metadata_hash_consistency():
+    """If index_metadata.json exists, verify dataset_hash matches the actual dataset file."""
+    from src.config import settings
+    import hashlib
+
+    if settings.INDEX_METADATA_PATH.exists() and settings.JOBS_DATA_PATH.exists():
+        with open(settings.INDEX_METADATA_PATH, "r", encoding="utf-8") as f:
+            idx_meta = json.load(f)
+        current_hash = hashlib.md5(settings.JOBS_DATA_PATH.read_bytes()).hexdigest()
+        assert idx_meta.get("dataset_hash") == current_hash, (
+            f"Index metadata hash {idx_meta.get('dataset_hash')} != current file hash {current_hash}"
+        )
+
+
+# =====================================================
+# Test 19: Conceptual invariant: indexed_count == dataset_count on full index
+# =====================================================
+def test_index_row_count_invariant():
+    """When a complete production index is built, indexed_job_count must equal dataset_row_count."""
+    from src.config import settings
+
+    if settings.INDEX_METADATA_PATH.exists():
+        with open(settings.INDEX_METADATA_PATH, "r", encoding="utf-8") as f:
+            idx_meta = json.load(f)
+
+        is_partial = idx_meta.get("is_partial_index", False)
+        if not is_partial:
+            assert idx_meta.get("indexed_job_count") == idx_meta.get("dataset_row_count"), (
+                f"Full production index count ({idx_meta.get('indexed_job_count')}) "
+                f"does not match dataset row count ({idx_meta.get('dataset_row_count')})"
+            )
+
+
+# =====================================================
+# Test 20: Mode-aware error messages
+# =====================================================
+def test_mode_aware_error_messages():
+    """Verify that JobRepository returns clear mode-specific messages when dataset missing."""
+    from src.search.job_repository import JobRepository
+    from unittest.mock import PropertyMock
+
+    with patch.object(JobRepository, "get_dataset_mode", return_value="raw_kaggle"):
+        with patch.object(JobRepository, "get_active_dataset_path", return_value=Path("non_existent_kaggle.csv")):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                JobRepository.load_jobs_dataframe(force_reload=True)
+            assert "Kaggle Naukri" in str(exc_info.value)
+
+    with patch.object(JobRepository, "get_dataset_mode", return_value="curated_demo"):
+        with patch.object(JobRepository, "get_active_dataset_path", return_value=Path("non_existent_demo.csv")):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                JobRepository.load_jobs_dataframe(force_reload=True)
+            assert "demo" in str(exc_info.value).lower()
+
