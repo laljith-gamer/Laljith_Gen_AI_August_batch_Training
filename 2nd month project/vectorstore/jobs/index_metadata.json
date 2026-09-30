@@ -1,7 +1,6 @@
 {
   "dataset_mode": "raw_kaggle",
   "dataset_path": "data/jobs/jobs_kaggle_naukri.csv",
-  "dataset_path_abs": "C:\\Users\\ASUS\\Desktop\\personal\\genai-inter\\2nd month project\\data\\jobs\\jobs_kaggle_naukri.csv",
   "dataset_hash": "c12e3f6eee81f5e98371b487d031fdaa",
   "dataset_row_count": 21739,
   "indexed_job_count": 500,

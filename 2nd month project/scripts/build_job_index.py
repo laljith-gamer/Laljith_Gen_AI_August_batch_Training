@@ -169,7 +169,6 @@ def build_job_index(force: bool = False, limit: int | None = None):
     index_metadata = {
         "dataset_mode": mode,
         "dataset_path": dataset_rel,
-        "dataset_path_abs": str(csv_path),
         "dataset_hash": dataset_hash,
         "dataset_row_count": total_valid_jobs,
         "indexed_job_count": len(metadata_list),

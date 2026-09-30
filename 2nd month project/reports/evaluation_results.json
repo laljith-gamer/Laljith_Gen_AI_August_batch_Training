@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-30T17:57:06.932944",
+  "timestamp": "2026-09-30T18:16:26.405292",
   "retrieval_evaluation": {
     "total_queries": 5,
     "hits": 5,
@@ -59,7 +59,7 @@
     "details": [
       {
         "question": "What is the exact 2029 dental health insurance premium at Acme Widgets?",
-        "answer": "I don't know based on the available documents.",
+        "answer": "I don't know based on the available documents. \n\nMy focus is on helping you with career strategy, resume optimization, interview preparation, and tech",
         "refused": true
       },
       {
@@ -78,7 +78,7 @@
     "test_query": "How should I structure bullet points on my resume?",
     "naive_prompt_characteristic": "Generic advice without document traceability, prone to fabricating metrics.",
     "grounded_prompt_characteristic": "Restricted strictly to the XYZ formula from resume_writing_guide.txt with traceable citations.",
-    "grounded_answer_snippet": "The gold standard for tech resume bullets is the **Google XYZ formula**: *\u201cAccomplished [X], as measured by [Y], by doing [Z].\u201d* \n\nInstead of just listing tasks (like *\"Worked on backend APIs using Python\"*), flip it to lead with your impact and how ...",
+    "grounded_answer_snippet": "The best way to structure high-impact resume bullet points is to use the Google **XYZ formula**: \n\n* **\"Accomplished [X], as measured by [Y], by doing [Z]\"**\n\nInstead of just listing what you did (like *\u201cWorked on backend APIs\u201d*), this framework forc...",
     "citations_present": true,
     "citation_sources": [
       "Resume Writing Guide",
@@ -102,7 +102,7 @@
   },
   "dataset_info": {
     "mode": "raw_kaggle",
-    "path": "C:\\Users\\ASUS\\Desktop\\personal\\genai-inter\\2nd month project\\data\\jobs\\jobs_kaggle_naukri.csv",
+    "path": "data/jobs/jobs_kaggle_naukri.csv",
     "exists": true,
     "job_count": 21739,
     "source_label": "Kaggle Naukri Production Corpus (PromptCloudHQ/jobs-on-naukricom)",

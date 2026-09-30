@@ -1,6 +1,6 @@
 # SmartHire GenAI - Answer Quality & Evaluation Report
 
-**Generated:** 2026-09-30T17:57:06.932944
+**Generated:** 2026-09-30T18:16:26.405292
 
 ## 1. Retrieval Relevance Benchmark
 - **Total Test Queries:** 5
@@ -49,4 +49,4 @@
 - **Prepared Jobs in Corpus:** 21,739
 - **Jobs Indexed in FAISS:** 500
 - **Index Status:** Partial Development Subset (500 / 21,739 indexed)
-- **Dataset Path:** C:\Users\ASUS\Desktop\personal\genai-inter\2nd month project\data\jobs\jobs_kaggle_naukri.csv
+- **Dataset Path:** data/jobs/jobs_kaggle_naukri.csv

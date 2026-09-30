@@ -195,9 +195,13 @@ class JobRepository:
         """Return metadata about the active dataset."""
         mode = cls.get_dataset_mode()
         path = cls.get_active_dataset_path()
+        try:
+            rel_path = str(path.relative_to(settings.PROJECT_ROOT)).replace("\\", "/")
+        except Exception:
+            rel_path = str(path).replace("\\", "/")
         info: Dict[str, Any] = {
             "mode": mode,
-            "path": str(path),
+            "path": rel_path,
             "exists": path.exists(),
             "job_count": 0,
             "source_label": "Unknown",
