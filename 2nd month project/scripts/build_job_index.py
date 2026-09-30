@@ -153,7 +153,27 @@ def build_job_index(force: bool = False, limit: int | None = None):
 
     logger.info(f"Generating embeddings for {len(job_texts)} job postings...")
     embed_manager = EmbeddingManager()
-    vectors = embed_manager.embed_texts(job_texts, show_progress=True)
+    try:
+        vectors = embed_manager.embed_texts(job_texts, show_progress=True)
+    except Exception as exc:
+        cached_count = len(embed_manager.cache)
+        remaining = total_valid_jobs - cached_count
+        logger.error(
+            f"\n{'='*60}\n"
+            f"DAILY QUOTA CEILING REACHED / BUILD INTERRUPTED\n"
+            f"{'='*60}\n"
+            f"Error: {exc}\n"
+            f"Total jobs in corpus:       {total_valid_jobs:,}\n"
+            f"Cached embeddings on disk: {cached_count:,}\n"
+            f"Remaining to embed:        {remaining:,}\n"
+            f"Index status:              PARTIAL / DEVELOPMENT\n"
+            f"Disk cache preserved at:   vectorstore/embedding_cache.json\n"
+            f"\nResumption instruction:\n"
+            f"When daily quota window refreshes or billing key is configured, re-run:\n"
+            f"    python scripts/build_job_index.py --force\n"
+            f"{'='*60}"
+        )
+        sys.exit(1)
 
     logger.info(f"Building FAISS index with shape {vectors.shape}...")
     vector_store.build_index(vectors, metadata_list)
