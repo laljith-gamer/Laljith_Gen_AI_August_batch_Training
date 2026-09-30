@@ -63,9 +63,12 @@ AppStateManager.initialize_state()
 
 # Dataset health check on startup
 if "_dataset_health_checked" not in st.session_state:
-    health = JobRepository.validate_dataset_health()
-    if health["issues"]:
-        st.session_state["_dataset_health_issues"] = health
+    try:
+        health = JobRepository.validate_dataset_health()
+        if health and health.get("issues"):
+            st.session_state["_dataset_health_issues"] = health
+    except Exception as exc:
+        pass
     st.session_state["_dataset_health_checked"] = True
 
 if st.session_state.get("_dataset_health_issues"):

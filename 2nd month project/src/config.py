@@ -151,17 +151,26 @@ class Settings:
     FEEDBACK_DIR: Path = PROJECT_ROOT / Path(os.getenv("FEEDBACK_DIR", "data/feedback"))
     RAW_KAGGLE_JOBS_DIR: Path = PROJECT_ROOT / "data" / "raw" / "kaggle" / "jobs"
     RAW_KAGGLE_RESUMES_DIR: Path = PROJECT_ROOT / "data" / "raw" / "kaggle" / "resumes"
+    _DEFAULT_JOB_DATA_MODE: str = "raw_kaggle"
 
     @property
     def JOB_DATA_MODE(self) -> str:
-        return str(get_secret("JOB_DATA_MODE", "raw_kaggle")).strip().lower()
+        try:
+            val = get_secret("JOB_DATA_MODE", "raw_kaggle")
+            if val is not None:
+                return str(val).strip().lower()
+        except Exception:
+            pass
+        return self._DEFAULT_JOB_DATA_MODE
 
     @property  
     def JOBS_DATA_PATH(self) -> Path:
-        mode = self.JOB_DATA_MODE
-        if mode == "curated_demo":
-            return self.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
-        # Production mode: Kaggle Naukri corpus (strict, no silent fallback)
+        try:
+            mode = self.JOB_DATA_MODE
+            if mode == "curated_demo":
+                return self.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
+        except Exception:
+            pass
         return self.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
 
     @property

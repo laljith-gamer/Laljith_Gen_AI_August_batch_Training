@@ -31,12 +31,27 @@ class JobRepository:
     @classmethod
     def get_active_dataset_path(cls) -> Path:
         """Return the path to the currently active job dataset based on JOB_DATA_MODE."""
-        return settings.JOBS_DATA_PATH
+        try:
+            path = getattr(settings, "JOBS_DATA_PATH", None)
+            if path is not None and isinstance(path, Path):
+                return path
+        except Exception:
+            pass
+        mode = cls.get_dataset_mode()
+        if mode == "curated_demo":
+            return settings.PROJECT_ROOT / "data" / "jobs" / "jobs_demo.csv"
+        return settings.PROJECT_ROOT / "data" / "jobs" / "jobs_kaggle_naukri.csv"
 
     @classmethod
     def get_dataset_mode(cls) -> str:
         """Return the current dataset mode."""
-        return settings.JOB_DATA_MODE
+        try:
+            mode = getattr(settings, "JOB_DATA_MODE", None)
+            if mode is not None and isinstance(mode, str):
+                return mode.strip().lower()
+        except Exception:
+            pass
+        return "raw_kaggle"
 
     @classmethod
     def is_dataset_available(cls) -> bool:
@@ -217,7 +232,7 @@ class JobRepository:
     def validate_dataset_health(cls) -> Dict[str, Any]:
         """Run diagnostic checks on dataset and index availability."""
         health: Dict[str, Any] = {
-            "dataset_mode": cls.get_dataset_mode(),
+            "dataset_mode": "raw_kaggle",
             "dataset_available": False,
             "index_available": False,
             "index_stale": False,
@@ -225,54 +240,61 @@ class JobRepository:
             "commands": [],
         }
 
-        mode = cls.get_dataset_mode()
-        path = cls.get_active_dataset_path()
+        try:
+            mode = cls.get_dataset_mode()
+            health["dataset_mode"] = mode
+            path = cls.get_active_dataset_path()
 
-        # Check dataset
-        if path.exists():
-            health["dataset_available"] = True
-            try:
-                df = pd.read_csv(path)
-                health["dataset_row_count"] = len(df)
-            except Exception as e:
-                health["issues"].append(f"Dataset exists but failed to read: {e}")
-        else:
-            health["issues"].append(f"Production dataset not found: {path}")
-            raw_path = settings.RAW_KAGGLE_JOBS_DIR / "naukri_com-job_sample.csv"
-            if not raw_path.exists():
-                health["issues"].append("Raw Kaggle Naukri dataset not downloaded.")
-                health["commands"].append("python scripts/download_kaggle_datasets.py --dataset naukri")
-            health["commands"].append("python scripts/prepare_kaggle_jobs.py")
-
-        # Check FAISS index
-        index_file = settings.JOB_INDEX_DIR / "index.faiss"
-        meta_file = settings.JOB_INDEX_DIR / "metadata.pkl"
-        if index_file.exists() and meta_file.exists():
-            health["index_available"] = True
-
-            # Check staleness via index_metadata.json
-            idx_meta_path = settings.INDEX_METADATA_PATH
-            if idx_meta_path.exists():
+            # Check dataset
+            if path.exists():
+                health["dataset_available"] = True
                 try:
-                    with open(idx_meta_path, "r", encoding="utf-8") as f:
-                        idx_meta = json.load(f)
-                    # Compare dataset hash
-                    if health["dataset_available"]:
-                        import hashlib
-                        current_hash = hashlib.md5(
-                            path.read_bytes()
-                        ).hexdigest()
-                        if idx_meta.get("dataset_hash") != current_hash:
-                            health["index_stale"] = True
-                            health["issues"].append(
-                                "FAISS index was built from a different dataset version. Rebuild recommended."
-                            )
-                            health["commands"].append("python scripts/build_job_index.py --force")
-                except Exception:
-                    pass
-        else:
-            health["issues"].append("FAISS job index not found.")
-            health["commands"].append("python scripts/build_job_index.py --force")
+                    df = pd.read_csv(path)
+                    health["dataset_row_count"] = len(df)
+                except Exception as e:
+                    health["issues"].append(f"Dataset exists but failed to read: {e}")
+            else:
+                health["issues"].append(f"Production dataset not found: {path}")
+                raw_path = getattr(settings, "RAW_KAGGLE_JOBS_DIR", settings.PROJECT_ROOT / "data" / "raw" / "kaggle" / "jobs") / "naukri_com-job_sample.csv"
+                if not raw_path.exists():
+                    health["issues"].append("Raw Kaggle Naukri dataset not downloaded.")
+                    health["commands"].append("python scripts/download_kaggle_datasets.py --dataset naukri")
+                health["commands"].append("python scripts/prepare_kaggle_jobs.py")
+
+            # Check FAISS index
+            index_dir = getattr(settings, "JOB_INDEX_DIR", settings.PROJECT_ROOT / "vectorstore" / "jobs")
+            index_file = index_dir / "index.faiss"
+            meta_file = index_dir / "metadata.pkl"
+            if index_file.exists() and meta_file.exists():
+                health["index_available"] = True
+
+                # Check staleness via index_metadata.json
+                idx_meta_path = getattr(settings, "INDEX_METADATA_PATH", index_dir / "index_metadata.json")
+                if idx_meta_path.exists():
+                    try:
+                        with open(idx_meta_path, "r", encoding="utf-8") as f:
+                            idx_meta = json.load(f)
+                        # Compare dataset hash
+                        if health["dataset_available"]:
+                            import hashlib
+                            current_hash = hashlib.md5(
+                                path.read_bytes()
+                            ).hexdigest()
+                            if idx_meta.get("dataset_hash") != current_hash:
+                                health["index_stale"] = True
+                                health["issues"].append(
+                                    "FAISS index was built from a different dataset version. Rebuild recommended."
+                                )
+                                health["commands"].append("python scripts/build_job_index.py --force")
+                    except Exception:
+                        pass
+            else:
+                health["issues"].append("FAISS job index not found.")
+                health["commands"].append("python scripts/build_job_index.py --force")
+
+        except Exception as exc:
+            logger.error(f"validate_dataset_health diagnostic encountered an error: {exc}", exc_info=True)
+            health["issues"].append(f"Diagnostics error: {exc}")
 
         return health
 
