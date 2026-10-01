@@ -90,9 +90,9 @@ def render_mentor_chat():
     cand_name = candidate_ctx.get("name", "Candidate")
     cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
 
-    # Initialize ChatGPT-style candidate memories (seeded from resume/profile if empty)
+    # Initialize conversation memory strictly scoped to the active chat session (no predefined facts)
     session_id = st.session_state.mentor_session_id
-    MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id, seed_from_resume=True)
+    MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id, seed_from_resume=False)
     memories = MentorMemoryManager.get_memories(session_id=session_id)
 
     # 2. Fetch saved sessions from database
@@ -140,8 +140,8 @@ def render_mentor_chat():
                 new_id = f"session_{int(time.time() * 1000)}"
                 st.session_state.mentor_chat_history = []
                 st.session_state.mentor_session_id = new_id
-                MentorMemoryManager.reset_session_memories(new_id, candidate_ctx=candidate_ctx, seed_from_resume=True)
-                st.toast("Started fresh conversation with persistent candidate memory.")
+                MentorMemoryManager.reset_session_memories(new_id)
+                st.toast("Started fresh conversation for this chat.")
                 st.rerun()
 
         with col_think:
@@ -540,15 +540,15 @@ def render_mentor_chat():
                         st.rerun()
 
         with col_mem:
-            # Memory Popover (Persistent Candidate Memory Bank across chats)
+            # Memory Popover (Strictly isolated to this chat alone)
             active_mems = MentorMemoryManager.get_memories(session_id)
             mem_count_label = f":material/psychology: Memory ({len(active_mems)})" if active_mems else ":material/psychology: Memory"
-            with st.popover(mem_count_label, width="stretch", help="Candidate facts and preferences remembered across chats"):
+            with st.popover(mem_count_label, width="stretch", help="Candidate facts remembered for this conversation alone"):
                 st.markdown("##### Candidate Memory")
-                st.caption("Facts and preferences remembered across chats to personalize career guidance.")
+                st.caption("Facts remembered during this chat alone.")
 
                 if not active_mems:
-                    st.info("No active memories yet. Attach a resume via chat (+) or add notes below.")
+                    st.info("No active memories for this chat. Facts discussed in your conversation will be remembered here.")
                 else:
                     for idx, mem in enumerate(active_mems):
                         m_c1, m_c2 = st.columns([5, 1])
@@ -568,14 +568,14 @@ def render_mentor_chat():
                 )
                 if st.button("Save to Memory", key="btn_save_custom_mem", width="stretch") and new_mem_input:
                     MentorMemoryManager.add_memory(new_mem_input, session_id=session_id)
-                    st.toast("Memory saved.")
+                    st.toast("Memory saved for this chat.")
                     st.rerun()
 
                 if active_mems:
                     st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
                     if st.button("Clear all memories", key="btn_clear_all_memories", type="secondary", width="stretch"):
                         MentorMemoryManager.clear_memories(session_id=session_id)
-                        st.toast("All candidate memories cleared.")
+                        st.toast("Memories cleared for this chat.")
                         st.rerun()
 
 
@@ -710,12 +710,10 @@ def render_mentor_chat():
                 AppStateManager.set_workflow_state(WorkflowState.PROFILE_REVIEW)
                 AppStateManager.invalidate_downstream()
 
-                # Refresh candidate context & memories in database
+                # Refresh candidate context
                 candidate_ctx = CandidateContextManager.extract_from_session_state(st.session_state)
                 cand_name = candidate_ctx.get("name", "Candidate")
                 cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
-                for init_mem in CandidateContextManager.get_initial_memories(candidate_ctx):
-                    MentorMemoryManager.add_memory(init_mem, session_id=st.session_state.mentor_session_id)
 
                 AuditLogger.log_event("RESUME_ATTACHED_VIA_CHAT_INPUT", "USER", "SUCCESS", {"filename": first_file.name})
                 st.toast(f"Attached and parsed '{first_file.name}'!")

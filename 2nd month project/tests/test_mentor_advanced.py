@@ -128,11 +128,9 @@ def test_mentor_memory_manager():
     if MentorMemoryManager.STATE_KEY in st.session_state:
         del st.session_state[MentorMemoryManager.STATE_KEY]
 
-    # Initialize with seed_from_resume=True
-    mems = MentorMemoryManager.initialize_memories(cand_ctx, seed_from_resume=True)
-    assert len(mems) >= 4
-    assert any("Jordan Lee" in m for m in mems)
-    assert any("Staff Platform Engineer" in m for m in mems)
+    # Initialize with seed_from_resume=False - starts clean without predefined facts
+    mems = MentorMemoryManager.initialize_memories(cand_ctx, seed_from_resume=False)
+    assert mems == []
 
     # Add custom memory
     MentorMemoryManager.add_memory("Prefers remote roles based in London or Zurich.")
@@ -288,7 +286,7 @@ def test_secrets_reading():
 
 
 def test_session_scoped_memories(tmp_path):
-    """Verify that candidate memory persists across chat sessions, auto-seeds from profile, and recalls past chat facts."""
+    """Verify that candidate memory is strictly isolated per chat session, with no cross-session or predefined leakage."""
     import streamlit as st
     from src.data.mentor_db import MentorDatabase
     from app.components.mentor_memory import MentorMemoryManager
@@ -296,22 +294,22 @@ def test_session_scoped_memories(tmp_path):
     test_db = tmp_path / "test_mentor_sessions.db"
     MentorDatabase.set_db_path(test_db)
 
-    # 1. DB persistence across sessions
+    # 1. DB persistence strictly scoped per session
     session_a = "sess_alpha_1"
     session_b = "sess_beta_2"
 
     MentorDatabase.add_memory("Prefers Python and FastAPI roles.", session_id=session_a)
     MentorDatabase.add_memory("Targeting Senior Go Architect positions.", session_id=session_b)
 
-    mems = MentorDatabase.get_memories()
-    assert "Prefers Python and FastAPI roles." in mems
-    assert "Targeting Senior Go Architect positions." in mems
+    mems_a = MentorDatabase.get_memories(session_id=session_a)
+    mems_b = MentorDatabase.get_memories(session_id=session_b)
 
-    # Clear state first
-    if MentorMemoryManager.STATE_KEY in st.session_state:
-        del st.session_state[MentorMemoryManager.STATE_KEY]
+    assert "Prefers Python and FastAPI roles." in mems_a
+    assert "Prefers Python and FastAPI roles." not in mems_b
+    assert "Targeting Senior Go Architect positions." in mems_b
+    assert "Targeting Senior Go Architect positions." not in mems_a
 
-    # 2. MentorMemoryManager auto-seeding and persistent recall tests
+    # 2. MentorMemoryManager session isolation
     cand_ctx = {
         "has_resume": True,
         "name": "Alex Mercer",
@@ -321,40 +319,42 @@ def test_session_scoped_memories(tmp_path):
         "summary": "Specialist in microservices.",
     }
 
-    # Initialize Session A with resume context - should NOT be empty
-    mems_a_mgr = MentorMemoryManager.initialize_memories(cand_ctx, session_id=session_a, seed_from_resume=True)
-    assert len(mems_a_mgr) > 0
-    assert any("Alex Mercer" in m for m in mems_a_mgr)
+    # Initialize Session A - loads existing DB memory for Session A, but no predefined resume facts
+    mems_a_mgr = MentorMemoryManager.initialize_memories(cand_ctx, session_id=session_a, seed_from_resume=False)
+    assert "Prefers Python and FastAPI roles." in mems_a_mgr
+    assert not any("Alex Mercer" in m for m in mems_a_mgr)
 
     # Add custom memory note in Session A
     MentorMemoryManager.add_memory("Only interested in remote work in Europe.", session_id=session_a)
     current_a = MentorMemoryManager.get_memories(session_id=session_a)
     assert "Only interested in remote work in Europe." in current_a
 
-    # Simulate New Chat -> Session B (reset_session_memories preserves past candidate memory bank!)
-    mems_b_mgr = MentorMemoryManager.reset_session_memories(session_b, candidate_context=cand_ctx, seed_from_resume=True)
-    current_b = MentorMemoryManager.get_memories(session_id=session_b)
-    # Session B has access to past chat memories (candidate memory bank is preserved across chats)
-    assert "Only interested in remote work in Europe." in current_b
-    assert any("Alex Mercer" in m for m in current_b)
+    # Simulate New Chat -> Session C (reset_session_memories creates clean empty slate)
+    session_c = "sess_gamma_3"
+    mems_c_mgr = MentorMemoryManager.reset_session_memories(session_c, candidate_context=cand_ctx, seed_from_resume=False)
+    assert mems_c_mgr == []
+    current_c = MentorMemoryManager.get_memories(session_id=session_c)
+    assert current_c == []  # Completely empty, no leakage from session A
 
     # Add memory in Session B
     MentorMemoryManager.add_memory("Needs minimum salary 120k GBP.", session_id=session_b)
-    assert "Needs minimum salary 120k GBP." in MentorMemoryManager.get_memories(session_id=session_b)
+    current_b = MentorMemoryManager.get_memories(session_id=session_b)
+    assert "Needs minimum salary 120k GBP." in current_b
+    assert "Needs minimum salary 120k GBP." not in MentorMemoryManager.get_memories(session_id=session_a)
 
-    # Simulate History Click -> Load Session A back, candidate memory bank remains active
+    # Simulate History Click -> Load Session A back, loads only Session A's facts
     restored_a = MentorMemoryManager.load_session_memories(session_a)
     assert "Only interested in remote work in Europe." in restored_a
-    assert "Needs minimum salary 120k GBP." in restored_a
+    assert "Needs minimum salary 120k GBP." not in restored_a
 
-    # Deleting a chat session preserves candidate memory bank
+    # Deleting a chat session deletes its scoped memories without touching other sessions
     MentorDatabase.delete_session(session_a)
-    assert len(MentorDatabase.get_memories()) > 0
-    assert "Only interested in remote work in Europe." in MentorDatabase.get_memories()
+    assert len(MentorDatabase.get_memories(session_id=session_a)) == 0
+    assert "Needs minimum salary 120k GBP." in MentorDatabase.get_memories(session_id=session_b)
 
-    # Explicit clear memories removes them
-    MentorMemoryManager.clear_memories()
-    assert len(MentorMemoryManager.get_memories()) == 0
+    # Explicit clear memories removes them for the given session only
+    MentorMemoryManager.clear_memories(session_id=session_b)
+    assert len(MentorMemoryManager.get_memories(session_id=session_b)) == 0
 
 
 
