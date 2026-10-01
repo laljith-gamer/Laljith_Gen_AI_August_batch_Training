@@ -89,7 +89,7 @@ if st.session_state.get("_dataset_health_issues"):
             if health.get("commands"):
                 st.code("\n".join(health["commands"]), language="bash")
 
-if "view" in st.query_params:
+if "active_view" not in st.session_state and "view" in st.query_params:
     q_view = st.query_params.get("view")
     if q_view:
         AppStateManager.set_active_view(q_view)

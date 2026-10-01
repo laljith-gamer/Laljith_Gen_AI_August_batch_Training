@@ -64,6 +64,10 @@ class AppStateManager:
     def set_active_view(cls, view_name: str):
         canonical = cls.VIEW_ALIASES.get(view_name, view_name)
         st.session_state.active_view = canonical
+        try:
+            st.query_params["view"] = canonical
+        except Exception:
+            pass
 
     @classmethod
     def get_active_view(cls) -> str:
