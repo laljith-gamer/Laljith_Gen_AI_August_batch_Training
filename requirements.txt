@@ -1,17 +1,26 @@
-﻿# GenAI Inter Project Requirements
+# GenAI Inter Project Requirements
 # Generated from analysis of all project files
 
 # Run `venv\Scripts\python -m pip install -r requirements.txt` from PowerShell.
-# Google Gen AI SDK (the supported replacement for google-generativeai)
-google-genai==2.22.0
-python-dotenv==1.2.3
+# Google Gen AI SDK & App framework
+google-genai>=2.22.0
+streamlit>=1.40.0
+python-dotenv>=1.0.0
 
-# RAG dependencies
-numpy==2.4.6
-faiss-cpu==1.15.0
-pypdf==6.17.0
-langchain==1.4.0
-langchain-community==0.4.2
-langchain-google-genai==4.4.0
-langchain-text-splitters==1.1.2
-pydantic==2.13.4
+# Document processing & exports
+python-docx>=1.2.0
+pypdf>=6.17.0
+
+# Vector search & Data processing
+numpy>=2.0.0
+faiss-cpu>=1.15.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+pydantic>=2.10.0
+
+# RAG & Legacy dependencies
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-text-splitters>=0.3.0
+

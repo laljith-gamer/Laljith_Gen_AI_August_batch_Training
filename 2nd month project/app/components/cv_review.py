@@ -395,8 +395,75 @@ def render_cv_review():
     if suggestions.status in (ReviewStatus.APPROVED, ReviewStatus.HUMAN_EDITED):
         with st.container(border=True):
             st.markdown("#### 5. Download tailored resume")
-            st.caption("Export your improved resume as a Word document (.docx) with the approved changes applied.")
+            st.caption("Export your improved resume with approved changes applied.")
 
+            safe_name = (profile.name or "candidate").replace(" ", "_").lower()
+            safe_job = selected_job.title.replace(" ", "_").lower()
+
+            # 1. Build standard Markdown / Plain Text representation (zero external dependencies)
+            md_lines = []
+            if profile.name:
+                md_lines.append(f"# {profile.name}")
+            contact_parts = [p for p in [profile.email, profile.phone, profile.location] if p]
+            if contact_parts:
+                md_lines.append(" | ".join(contact_parts))
+            md_lines.append("")
+
+            if suggestions.rewritten_summary:
+                md_lines.append("## Professional Summary\n")
+                md_lines.append(suggestions.rewritten_summary.strip())
+                md_lines.append("")
+
+            if profile.skills:
+                md_lines.append("## Technical Skills\n")
+                md_lines.append(", ".join(profile.skills))
+                md_lines.append("")
+
+            if suggestions.rewritten_bullets:
+                md_lines.append("## Key Achievements (Tailored)\n")
+                for bullet in suggestions.rewritten_bullets:
+                    md_lines.append(f"- {bullet.strip()}")
+                md_lines.append("")
+
+            if profile.experience:
+                md_lines.append("## Experience\n")
+                for exp in profile.experience:
+                    role_str = f"### {exp.role or 'Role'}" + (f" at {exp.company}" if exp.company else "")
+                    dates = []
+                    if exp.start_date:
+                        dates.append(exp.start_date)
+                    if exp.end_date:
+                        dates.append(exp.end_date)
+                    elif exp.start_date:
+                        dates.append("Present")
+                    if dates:
+                        role_str += f" ({' – '.join(dates)})"
+                    md_lines.append(role_str)
+                    if exp.description:
+                        md_lines.append(f"\n{exp.description.strip()}\n")
+                    else:
+                        md_lines.append("")
+
+            if profile.education:
+                md_lines.append("## Education\n")
+                for edu in profile.education:
+                    edu_parts = [f"**{edu.degree or 'Degree'}**"]
+                    if edu.field:
+                        edu_parts.append(f"in {edu.field}")
+                    if edu.institution:
+                        edu_parts.append(f"— {edu.institution}")
+                    if edu.end_date:
+                        edu_parts.append(f"({edu.end_date})")
+                    md_lines.append(f"- {' '.join(edu_parts)}")
+                md_lines.append("")
+
+            md_lines.append("---")
+            md_lines.append(f"*Tailored for: {selected_job.title} at {selected_job.company}*")
+            resume_md = "\n".join(md_lines)
+
+            # 2. Build Word (.docx) document if python-docx is available
+            docx_buffer = None
+            docx_missing = False
             try:
                 from docx import Document as DocxDocument
                 from docx.shared import Pt, Inches, RGBColor
@@ -417,7 +484,6 @@ def render_cv_review():
                         run.font.color.rgb = RGBColor(0x1d, 0x4e, 0xd8)
 
                 # Contact line
-                contact_parts = [p for p in [profile.email, profile.phone, profile.location] if p]
                 if contact_parts:
                     contact_para = doc.add_paragraph(' | '.join(contact_parts))
                     contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -473,24 +539,74 @@ def render_cv_review():
                     run.font.italic = True
                     run.font.color.rgb = RGBColor(0x94, 0xA3, 0xB8)
 
-                # Save to buffer
                 buffer = io.BytesIO()
                 doc.save(buffer)
                 buffer.seek(0)
-
-                safe_name = (profile.name or "candidate").replace(" ", "_").lower()
-                safe_job = selected_job.title.replace(" ", "_").lower()
-                filename = f"{safe_name}_tailored_{safe_job}.docx"
-
-                st.download_button(
-                    label="Download tailored resume (.docx)",
-                    data=buffer,
-                    file_name=filename,
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    type="primary",
-                    key="btn_download_tailored_resume",
-                )
+                docx_buffer = buffer
             except ImportError:
-                st.warning("python-docx is required for DOCX export. Install it with: `pip install python-docx`")
+                docx_missing = True
             except Exception as e:
-                st.error(f"Could not generate resume document: {e}")
+                st.warning(f"DOCX formatting encountered an issue: {e}")
+
+            # 3. Render Download Buttons
+            if docx_missing:
+                st.info(
+                    "💡 **Word (.docx) export requires python-docx**: Install with `pip install python-docx`. "
+                    "In the meantime, you can immediately download your tailored resume as Markdown (.md) or Text (.txt) below:"
+                )
+
+            col_d1, col_d2, col_d3 = st.columns([1, 1, 1])
+
+            if docx_buffer:
+                with col_d1:
+                    st.download_button(
+                        label="📥 Download Word (.docx)",
+                        data=docx_buffer,
+                        file_name=f"{safe_name}_tailored_{safe_job}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        type="primary",
+                        width="stretch",
+                        key="btn_download_tailored_docx",
+                    )
+                with col_d2:
+                    st.download_button(
+                        label="📄 Download Markdown (.md)",
+                        data=resume_md,
+                        file_name=f"{safe_name}_tailored_{safe_job}.md",
+                        mime="text/markdown",
+                        type="secondary",
+                        width="stretch",
+                        key="btn_download_tailored_md",
+                    )
+                with col_d3:
+                    st.download_button(
+                        label="📋 Download Text (.txt)",
+                        data=resume_md,
+                        file_name=f"{safe_name}_tailored_{safe_job}.txt",
+                        mime="text/plain",
+                        type="secondary",
+                        width="stretch",
+                        key="btn_download_tailored_txt",
+                    )
+            else:
+                with col_d1:
+                    st.download_button(
+                        label="📄 Download Markdown (.md)",
+                        data=resume_md,
+                        file_name=f"{safe_name}_tailored_{safe_job}.md",
+                        mime="text/markdown",
+                        type="primary",
+                        width="stretch",
+                        key="btn_download_tailored_md",
+                    )
+                with col_d2:
+                    st.download_button(
+                        label="📋 Download Text (.txt)",
+                        data=resume_md,
+                        file_name=f"{safe_name}_tailored_{safe_job}.txt",
+                        mime="text/plain",
+                        type="secondary",
+                        width="stretch",
+                        key="btn_download_tailored_txt",
+                    )
+
