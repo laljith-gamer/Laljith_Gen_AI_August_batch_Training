@@ -144,21 +144,10 @@ class CandidateContextManager:
 
     @classmethod
     def get_initial_memories(cls, candidate_ctx: Dict[str, Any]) -> List[str]:
-        """Extract high-level candidate memory facts to persist in IndexedDB and chat sessions."""
-        if not candidate_ctx.get("has_resume"):
-            return []
-        memories: List[str] = []
-        if candidate_ctx.get("name"):
-            memories.append(f"Candidate's name is {candidate_ctx['name']}.")
-        if candidate_ctx.get("target_role"):
-            memories.append(f"Target career role: {candidate_ctx['target_role']}.")
-        if candidate_ctx.get("years_of_experience") is not None:
-            memories.append(f"Possesses {candidate_ctx['years_of_experience']:.1f} years of relevant experience.")
-        if candidate_ctx.get("skills"):
-            top_skills = ", ".join(candidate_ctx["skills"][:10])
-            memories.append(f"Verified core competencies: {top_skills}.")
-        if candidate_ctx.get("summary"):
-            clean_summary = candidate_ctx['summary'].strip()[:140]
-            memories.append(f"Professional profile summary: {clean_summary}...")
-        return memories
+        """
+        Candidate memories are strictly conversational and learned dynamically during chat turns.
+        Predefined facts from resume are no longer seeded into memory prior to or upon chat start.
+        """
+        return []
+
 

@@ -95,15 +95,6 @@ def render_mentor_chat():
     MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id, seed_from_resume=False)
     memories = MentorMemoryManager.get_memories(session_id=session_id)
 
-    # If this chat has an active candidate resume and no memories yet, record verified profile for this chat
-    if has_resume and not memories and cand_name and cand_name != "Candidate":
-        MentorMemoryManager.add_memory(f"Candidate's name is {cand_name}.", session_id=session_id)
-        if cand_role and "Engineering / Tech" not in cand_role:
-            MentorMemoryManager.add_memory(f"Target career role: {cand_role}.", session_id=session_id)
-        if candidate_ctx.get("skills"):
-            top_skills = candidate_ctx["skills"][:8]
-            MentorMemoryManager.add_memory(f"Verified core competencies: {', '.join(top_skills)}.", session_id=session_id)
-        memories = MentorMemoryManager.get_memories(session_id=session_id)
 
     # 2. Fetch saved sessions from database
     saved_sessions = MentorDatabaseManager.list_sessions()
@@ -727,16 +718,6 @@ def render_mentor_chat():
                 candidate_ctx = CandidateContextManager.extract_from_session_state(st.session_state)
                 cand_name = candidate_ctx.get("name", "Candidate")
                 cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
-
-                # Store candidate identity in memory for THIS active chat session alone
-                session_id = st.session_state.mentor_session_id
-                if cand_name and cand_name != "Candidate":
-                    MentorMemoryManager.add_memory(f"Candidate's name is {cand_name}.", session_id=session_id)
-                if cand_role and "Engineering / Tech" not in cand_role:
-                    MentorMemoryManager.add_memory(f"Target career role: {cand_role}.", session_id=session_id)
-                if candidate_ctx.get("skills"):
-                    top_skills = candidate_ctx["skills"][:8]
-                    MentorMemoryManager.add_memory(f"Verified core competencies: {', '.join(top_skills)}.", session_id=session_id)
 
                 AuditLogger.log_event("RESUME_ATTACHED_VIA_CHAT_INPUT", "USER", "SUCCESS", {"filename": first_file.name})
                 st.toast(f"Attached and parsed '{first_file.name}'!")

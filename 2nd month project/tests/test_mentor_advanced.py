@@ -18,6 +18,8 @@ from src.models.schemas import (
 from src.mentor.candidate_context import CandidateContextManager
 from src.mentor.rag_chain import MentorRAGChain
 from app.components.mentor_storage import MentorIndexedDBManager
+from app.components.mentor_memory import MentorMemoryManager
+
 
 
 def test_candidate_context_extraction_with_profile():
@@ -355,6 +357,30 @@ def test_session_scoped_memories(tmp_path):
     # Explicit clear memories removes them for the given session only
     MentorMemoryManager.clear_memories(session_id=session_b)
     assert len(MentorMemoryManager.get_memories(session_id=session_b)) == 0
+
+
+def test_no_predefined_resume_memory_seeding():
+    """Verify memory never pre-populates facts from resume; starts empty for chat turns only."""
+    cand_ctx = {
+        "has_resume": True,
+        "name": "Laljith V",
+        "target_role": "Software Engineer",
+        "years_of_experience": 2.5,
+        "skills": ["Python", "Java", "Next.js"],
+        "summary": "Full Stack developer experienced in web and mobile.",
+    }
+
+    # 1. CandidateContextManager.get_initial_memories returns empty
+    initial_memories = CandidateContextManager.get_initial_memories(cand_ctx)
+    assert initial_memories == []
+
+    # 2. MentorMemoryManager initialization with active candidate context stays completely empty
+    test_session = "fresh_chat_isolated"
+    mems = MentorMemoryManager.initialize_memories(cand_ctx, session_id=test_session, seed_from_resume=False)
+    assert mems == []
+    assert MentorMemoryManager.get_memories(session_id=test_session) == []
+    assert not any("Laljith" in m for m in mems)
+
 
 
 
