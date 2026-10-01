@@ -32,6 +32,13 @@
   - 20-test dataset pipeline suite (`tests/test_dataset_pipeline.py`) — full project suite: 67 tests
   - Resumable streaming cache: 909 valid embeddings persisted in `vectorstore/embedding_cache.json`
 
+- [x] **PHASE 19**: **Candidate Memory Scoping & Session Isolation**
+  - Resolved candidate memory behavior: strictly isolated per conversation session (`app/components/mentor_memory.py`, `app/components/mentor_chat.py`, `src/data/mentor_db.py`).
+  - `＋ New chat` starts completely fresh with empty memory (`[]`), preventing auto-injected resume facts or cross-chat pollution.
+  - Custom notes and autonomous memory extractions are bound strictly to `session_id` in SQLite `mentor_memories`.
+  - Zero cross-session leakage: queries without `session_id` strictly filter out session memories; session restore correctly reloads only that session's memory.
+  - Automated tests updated and passing: 9/9 mentor advanced tests, 67/67 full project tests (100%).
+
 ## Current Dataset & Index Status
 - **Production Corpus**: Kaggle Naukri (`PromptCloudHQ/jobs-on-naukricom`)
   - File: `data/jobs/jobs_kaggle_naukri.csv`
@@ -44,7 +51,7 @@
   - Metadata records: 500
   - Dimension: 3072 (`gemini-embedding-001`)
   - Status: `PARTIAL / DEVELOPMENT` (`is_partial_index: true`)
-  - Cached embeddings in disk cache: 909 / 21,739
+  - Cached embeddings in disk cache: 1,885 / 21,739 (increased from 909)
   - Quota note: Gemini free-tier daily ceiling reached (`EmbedContentRequestsPerDayPerProjectPerModel-FreeTier: 1000`). Zero loss: cache preserved for immediate resumption.
 
 ## Exact Pipeline Reproduction Commands
