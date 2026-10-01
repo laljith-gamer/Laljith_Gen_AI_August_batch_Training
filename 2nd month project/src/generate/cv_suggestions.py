@@ -27,12 +27,47 @@ class CVSuggestionEngine:
         target_job: JobPosting,
         model_name: Optional[str] = None,
     ) -> CVSuggestionResult:
-        if isinstance(candidate_profile, HumanApprovedProfile):
-            approved = ProfileReviewManager.validate_approved(candidate_profile)
-        elif isinstance(candidate_profile, ResumeProfile):
+        approved: Optional[ResumeProfile] = None
+
+        is_container = (
+            isinstance(candidate_profile, HumanApprovedProfile)
+            or type(candidate_profile).__name__ == "HumanApprovedProfile"
+            or (hasattr(candidate_profile, "is_approved") and (hasattr(candidate_profile, "approved_profile") or hasattr(candidate_profile, "original_ai_profile")))
+        )
+
+        if is_container:
+            if not getattr(candidate_profile, "is_approved", False):
+                status_str = getattr(candidate_profile, "status", "REQUIRES_REVIEW")
+                raise PermissionError(
+                    f"Candidate profile status is '{status_str}'. "
+                    "Human review and explicit approval are required before proceeding to CV suggestions."
+                )
+            raw_approved = getattr(candidate_profile, "approved_profile", None) or getattr(candidate_profile, "original_ai_profile", None)
+            if isinstance(raw_approved, dict):
+                approved = ResumeProfile(**raw_approved)
+            elif isinstance(raw_approved, ResumeProfile) or (hasattr(raw_approved, "skills") and hasattr(raw_approved, "target_role")):
+                approved = raw_approved
+        elif (
+            isinstance(candidate_profile, ResumeProfile)
+            or type(candidate_profile).__name__ == "ResumeProfile"
+            or (hasattr(candidate_profile, "skills") and hasattr(candidate_profile, "target_role"))
+        ):
+            approved = candidate_profile
+        elif isinstance(candidate_profile, dict):
+            if candidate_profile.get("is_approved") is False:
+                raise PermissionError("Candidate profile requires human review and explicit approval.")
+            raw_prof = candidate_profile.get("approved_profile") or candidate_profile.get("original_ai_profile") or candidate_profile
+            if isinstance(raw_prof, dict) and ("skills" in raw_prof or "target_role" in raw_prof):
+                approved = ResumeProfile(**raw_prof)
+            elif isinstance(raw_prof, ResumeProfile) or (hasattr(raw_prof, "skills") and hasattr(raw_prof, "target_role")):
+                approved = raw_prof
+        elif hasattr(candidate_profile, "skills"):
             approved = candidate_profile
         else:
             raise TypeError("Invalid profile type provided to generate_suggestions.")
+
+        if approved is None:
+            raise ValueError("No valid candidate profile available for CV suggestions.")
 
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is required for CV suggestion generation.")

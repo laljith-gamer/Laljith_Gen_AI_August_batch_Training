@@ -97,14 +97,29 @@ class AppStateManager:
     @classmethod
     def is_profile_approved(cls) -> bool:
         container: Optional[HumanApprovedProfile] = st.session_state.get("human_profile_container")
-        return container is not None and container.is_approved
+        if not container:
+            return False
+        if isinstance(container, dict):
+            return bool(container.get("is_approved"))
+        return bool(getattr(container, "is_approved", False))
 
     @classmethod
     def get_approved_profile(cls) -> Optional[ResumeProfile]:
         container: Optional[HumanApprovedProfile] = st.session_state.get("human_profile_container")
-        if container and container.is_approved:
-            return container.approved_profile
-        return None
+        if not container:
+            return None
+        is_app = container.get("is_approved") if isinstance(container, dict) else getattr(container, "is_approved", False)
+        if not is_app:
+            return None
+        prof = container.get("approved_profile") if isinstance(container, dict) else getattr(container, "approved_profile", None)
+        if not prof:
+            prof = container.get("original_ai_profile") if isinstance(container, dict) else getattr(container, "original_ai_profile", None)
+        if isinstance(prof, dict):
+            try:
+                return ResumeProfile(**prof)
+            except Exception:
+                return None
+        return prof
 
     @classmethod
     def invalidate_downstream(cls, full_reset: bool = False):

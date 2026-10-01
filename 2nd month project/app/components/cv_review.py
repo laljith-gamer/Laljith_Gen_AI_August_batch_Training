@@ -12,7 +12,7 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 from src.config import settings
-from src.models.schemas import JobPosting, CVSuggestionResult
+from src.models.schemas import JobPosting, CVSuggestionResult, ResumeProfile
 from src.models.enums import ReviewStatus, WorkflowState
 from src.generate.cv_suggestions import CVSuggestionEngine
 from src.human_loop.feedback import FeedbackManager
@@ -70,6 +70,25 @@ def render_cv_review():
         return
 
     profile = AppStateManager.get_approved_profile()
+    if not profile:
+        container = st.session_state.get("human_profile_container")
+        if container:
+            raw_p = getattr(container, "approved_profile", None) or getattr(container, "original_ai_profile", None)
+            if isinstance(raw_p, dict):
+                try:
+                    profile = ResumeProfile(**raw_p)
+                except Exception:
+                    profile = None
+            elif raw_p is not None:
+                profile = raw_p
+
+    if not profile:
+        with st.container(border=True):
+            st.warning("Candidate profile confirmation required before tailoring your resume.")
+            if st.button("Review profile →", key="btn_gate_to_profile_cv_fallback"):
+                AppStateManager.set_active_view("Profile")
+                st.rerun()
+        return
 
     # Load candidate target jobs with full-corpus search capability
     selected_job: Optional[JobPosting] = st.session_state.get("selected_job_for_cv")

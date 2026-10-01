@@ -4,9 +4,12 @@ Provides scannable cards, transparent match insights, and streamlined resume tai
 """
 
 from typing import List, Optional
+import logging
 import streamlit as st
 
-from src.models.schemas import JobMatchResult, JobPosting
+logger = logging.getLogger(__name__)
+
+from src.models.schemas import JobMatchResult, JobPosting, ResumeProfile
 from src.models.enums import WorkflowState
 from src.search.job_search import JobSearchEngine
 from src.human_loop.feedback import FeedbackManager
@@ -75,6 +78,25 @@ def render_job_matches():
         return
 
     profile = AppStateManager.get_approved_profile()
+    if not profile:
+        container = st.session_state.get("human_profile_container")
+        if container:
+            raw_p = getattr(container, "approved_profile", None) or getattr(container, "original_ai_profile", None)
+            if isinstance(raw_p, dict):
+                try:
+                    profile = ResumeProfile(**raw_p)
+                except Exception:
+                    profile = None
+            elif raw_p is not None:
+                profile = raw_p
+
+    if not profile:
+        with st.container(border=True):
+            st.warning("Candidate profile confirmation required before proceeding to job matching.")
+            if st.button("Review profile →", key="btn_gate_to_profile_fallback"):
+                AppStateManager.set_active_view("Profile")
+                st.rerun()
+        return
 
     # Cohesive Search Toolbar
     with st.container(border=True):
@@ -110,6 +132,8 @@ def render_job_matches():
     needs_search = search_clicked or (st.session_state.get("job_matches") is None)
     if needs_search:
         with st.spinner("Finding roles that match your confirmed competencies..."):
+            cand_skills = getattr(profile, "skills", []) if profile else []
+            cand_role = getattr(profile, "target_role", "Engineering") if profile else "Engineering"
             try:
                 engine = JobSearchEngine()
                 # If keyword filter is provided, query full Kaggle Naukri corpus directly
@@ -123,7 +147,7 @@ def render_job_matches():
                     matches = []
                     for c_job in corpus_results[:top_k]:
                         matched_sk, missing_sk = JobSearchEngine.calculate_skill_overlap(
-                            profile.skills, c_job.skills, job_text=f"{c_job.title} {c_job.description}"
+                            cand_skills, c_job.skills, job_text=f"{c_job.title} {c_job.description}"
                         )
                         score = min(0.95, 0.55 + 0.08 * len(matched_sk)) if matched_sk else 0.60
                         matches.append(
@@ -148,7 +172,7 @@ def render_job_matches():
                     matches = []
                     for p_job in popular:
                         matched_sk, missing_sk = JobSearchEngine.calculate_skill_overlap(
-                            profile.skills, p_job.skills, job_text=f"{p_job.title} {p_job.description}"
+                            cand_skills, p_job.skills, job_text=f"{p_job.title} {p_job.description}"
                         )
                         matches.append(
                             JobMatchResult(
@@ -162,7 +186,7 @@ def render_job_matches():
 
                 st.session_state.job_matches = matches
                 AuditLogger.log_event("JOB_SEARCH_EXECUTED", "SYSTEM", "SUCCESS", {
-                    "target_role": profile.target_role,
+                    "target_role": cand_role,
                     "top_k": top_k,
                     "results_count": len(matches),
                 })
@@ -173,7 +197,7 @@ def render_job_matches():
                 matches = []
                 for p_job in popular:
                     matched_sk, missing_sk = JobSearchEngine.calculate_skill_overlap(
-                        profile.skills, p_job.skills, job_text=f"{p_job.title} {p_job.description}"
+                        cand_skills, p_job.skills, job_text=f"{p_job.title} {p_job.description}"
                     )
                     matches.append(
                         JobMatchResult(
