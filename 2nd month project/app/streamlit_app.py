@@ -19,8 +19,16 @@ for mod in [
     "src.models.enums",
     "src.mentor.rag_chain",
     "src.mentor.prompts",
+    "src.search.job_repository",
+    "src.search.job_search",
+    "src.generate.cv_suggestions",
+    "app.state",
+    "app.ui",
+    "app.components.cv_review",
+    "app.components.job_cards",
     "app.components.mentor_chat",
     "app.components.mentor_storage",
+    "app.components.mentor_memory",
 ]:
     if mod in sys.modules:
         try:

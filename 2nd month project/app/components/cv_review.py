@@ -5,8 +5,11 @@ Presents job-tailored resume enhancements, weak bullet critiques, and allows hum
 
 from typing import Optional, List
 import html
+import logging
 import pandas as pd
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 from src.config import settings
 from src.models.schemas import JobPosting, CVSuggestionResult
@@ -66,7 +69,21 @@ def render_cv_review():
             candidate_jobs.append(selected_job)
 
         if job_search_kw and job_search_kw.strip():
-            results = JobRepository.search_jobs_by_query(job_search_kw.strip(), limit=50)
+            try:
+                if hasattr(JobRepository, "search_jobs_by_query"):
+                    results = JobRepository.search_jobs_by_query(job_search_kw.strip(), limit=50)
+                else:
+                    all_j = JobRepository.load_active_jobs() if hasattr(JobRepository, "load_active_jobs") else []
+                    kw_lower = job_search_kw.strip().lower()
+                    results = [
+                        j for j in all_j
+                        if kw_lower in j.title.lower()
+                        or kw_lower in j.company.lower()
+                        or kw_lower in " ".join(j.skills).lower()
+                    ][:50]
+            except Exception as exc:
+                logger.warning(f"Error querying jobs in JobRepository: {exc}")
+                results = []
             for j in results:
                 if j.job_id not in [x.job_id for x in candidate_jobs]:
                     candidate_jobs.append(j)
@@ -77,8 +94,16 @@ def render_cv_review():
                 for m in matches:
                     if m.job.job_id not in [x.job_id for x in candidate_jobs]:
                         candidate_jobs.append(m.job)
-            # Add representative roles from full corpus
-            popular_jobs = JobRepository.get_popular_target_jobs(limit=40)
+            # Add representative roles from full corpus with defensive fallback
+            popular_jobs = []
+            try:
+                if hasattr(JobRepository, "get_popular_target_jobs"):
+                    popular_jobs = JobRepository.get_popular_target_jobs(limit=40)
+                elif hasattr(JobRepository, "load_active_jobs"):
+                    popular_jobs = JobRepository.load_active_jobs()[:40]
+            except Exception as exc:
+                logger.warning(f"Could not fetch popular target jobs: {exc}")
+                popular_jobs = []
             for j in popular_jobs:
                 if j.job_id not in [x.job_id for x in candidate_jobs]:
                     candidate_jobs.append(j)
