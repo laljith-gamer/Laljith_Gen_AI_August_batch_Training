@@ -63,18 +63,18 @@ Rules:
 
         # 2. Target role pattern
         role_match = re.search(
-            r"(?:targeting|aiming for|looking for|applying for|want to be an?|pursuing an?|target role is|interested in|work as an?|job as an?)\s+([a-zA-Z0-9\s\-/]+?)(?:\.|\,|$|with|at|paying|remotely|in)",
+            r"(?:targeting|aiming for|looking for|applying for|want to be an?|pursuing an?|target role is|interested in|work as an?|job as an?|i am an?|i'm an?)\s+([a-zA-Z0-9\s\-/]+?)(?:\.|\,|$|with|at|paying|remotely|in)",
             user_text,
             re.IGNORECASE,
         )
         if role_match:
             role = role_match.group(1).strip()
-            if len(role) > 3 and role.lower() not in existing_str:
+            if len(role) > 3 and role.lower() not in existing_str and role.lower() not in {"ready", "excited", "open", "here", "curious"}:
                 facts.append(f"Target role: {role.title()}")
 
         # 3. Skills pattern
         skills_match = re.search(
-            r"(?:proficient in|skilled in|experience with|tech stack is|working with|technologies? like|programming in)\s+([a-zA-Z0-9\s,\+/#\.]+?)(?:\.|\,|$|for|at)",
+            r"(?:proficient in|skilled in|experience with|tech stack is|working with|technologies? like|programming in|skills? (?:are|include)|i know)\s+([a-zA-Z0-9\s,\+/#\.]+?)(?:\.|\,|$|for|at)",
             user_text,
             re.IGNORECASE,
         )
@@ -82,6 +82,7 @@ Rules:
             sks = skills_match.group(1).strip()
             if len(sks) > 2 and sks.lower() not in existing_str:
                 facts.append(f"Key competencies: {sks}")
+
 
         # 4. Education pattern
         edu_match = re.search(

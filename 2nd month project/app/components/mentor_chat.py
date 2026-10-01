@@ -79,7 +79,8 @@ def render_mentor_chat():
         # Load existing messages and memories for active session from database if available
         loaded = MentorDatabaseManager.load_session(st.session_state.mentor_session_id)
         st.session_state.mentor_chat_history = loaded
-        MentorMemoryManager.load_session_memories(st.session_state.mentor_session_id)
+        MentorMemoryManager.load_session_memories(st.session_state.mentor_session_id, messages=loaded)
+
 
     if "mentor_think_mode" not in st.session_state:
         st.session_state.mentor_think_mode = False
@@ -519,9 +520,10 @@ def render_mentor_chat():
                                             msgs = MentorDatabaseManager.load_session(s_id)
                                             st.session_state.mentor_session_id = s_id
                                             st.session_state.mentor_chat_history = msgs
-                                            MentorMemoryManager.load_session_memories(s_id)
+                                            MentorMemoryManager.load_session_memories(s_id, messages=msgs)
                                             st.toast(f"Loaded: '{short_title}'")
                                             st.rerun()
+
                                     with row_col2:
                                         if st.button(":material/delete:", key=f"hist_del_{s_id}", help="Delete this chat from database"):
                                             MentorDatabaseManager.delete_session(s_id)

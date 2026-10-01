@@ -382,6 +382,44 @@ def test_no_predefined_resume_memory_seeding():
     assert not any("Laljith" in m for m in mems)
 
 
+def test_history_memory_recovery_on_restore(tmp_path):
+    """Verify that restoring an old session from history recovers its discussed memories."""
+    test_db = tmp_path / "mentor_history_recovery.db"
+    from src.data.mentor_db import MentorDatabase
+    MentorDatabase.set_db_path(test_db)
+
+    old_session_id = "sess_legacy_past"
+
+    # Save an old conversation in database with messages discussing background
+    MentorDatabase.save_message(
+        session_id=old_session_id,
+        role="user",
+        content="Hi! My name is Laljith. I am targeting Senior DevOps Engineer roles, remote only, salary $150k+.",
+        candidate_name="Laljith V",
+        target_role="Senior DevOps Engineer",
+    )
+    MentorDatabase.save_message(
+        session_id=old_session_id,
+        role="assistant",
+        content="Hello Laljith! Great to assist you with your Senior DevOps career goals.",
+    )
+
+    # Verify that mentor_memories table has zero explicit rows yet for this session
+    assert MentorDatabase.get_memories(session_id=old_session_id) == []
+
+    # Restore from History: load_session_memories automatically recovers the memories
+    recovered = MentorMemoryManager.load_session_memories(old_session_id)
+    assert len(recovered) >= 1
+    recovered_lower = " ".join(recovered).lower()
+    assert "laljith" in recovered_lower
+    assert "devops" in recovered_lower or "remote" in recovered_lower or "$150k" in recovered_lower
+
+    # Subsequent loads fetch directly from DB
+    persisted = MentorDatabase.get_memories(session_id=old_session_id)
+    assert len(persisted) == len(recovered)
+
+
+
 
 
 

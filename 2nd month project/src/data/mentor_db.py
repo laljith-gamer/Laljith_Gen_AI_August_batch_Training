@@ -150,6 +150,20 @@ class MentorDatabase:
             return [dict(row) for row in rows]
 
     @classmethod
+    def get_session(cls, session_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve metadata for a specific chat session."""
+        cls.init_db()
+        with cls._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, title, candidate_name, target_role, created_at, updated_at
+                FROM mentor_sessions WHERE id = ?;
+            """, (session_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+
+    @classmethod
     def delete_session(cls, session_id: str) -> bool:
         """Delete a chat session, its associated messages, and its scoped memories."""
         cls.init_db()

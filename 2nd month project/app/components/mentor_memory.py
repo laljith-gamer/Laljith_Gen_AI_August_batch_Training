@@ -38,6 +38,75 @@ class MentorMemoryManager:
         return cls.STATE_KEY
 
     @classmethod
+    def _recover_memories_for_session(
+        cls,
+        session_id: str,
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[str]:
+        """
+        Recovers and persists memories for an existing chat session that has no memories recorded in DB yet.
+        Only runs for sessions that actually exist in the database with records or messages.
+        Brand new empty sessions return [] immediately.
+        """
+        try:
+            sess_meta = MentorDatabase.get_session(session_id)
+        except Exception:
+            sess_meta = None
+
+        chat_msgs = messages
+        if chat_msgs is None:
+            try:
+                chat_msgs = MentorDatabase.get_session_messages(session_id)
+            except Exception:
+                chat_msgs = []
+
+        # If this is a fresh new session without DB records or messages, do not recover anything
+        if not sess_meta and not chat_msgs:
+            return []
+
+        recovered: List[str] = []
+
+        # 1. Check if there are legacy unscoped memories in DB (pre-session-isolation versions)
+        try:
+            unscoped = MentorDatabase.get_memories(session_id=None)
+            if unscoped:
+                for fact in unscoped:
+                    clean = fact.strip()
+                    if clean and clean not in recovered:
+                        recovered.append(clean)
+                        MentorDatabase.add_memory(clean, session_id=session_id)
+        except Exception as exc:
+            logger.debug(f"Unscoped memory check: {exc}")
+
+        # 2. Check session metadata in mentor_sessions
+        if sess_meta:
+            c_name = sess_meta.get("candidate_name")
+            c_role = sess_meta.get("target_role")
+            if c_name and c_name != "Candidate" and not any(c_name.lower() in r.lower() for r in recovered):
+                fact = f"Candidate name: {c_name}"
+                recovered.append(fact)
+                MentorDatabase.add_memory(fact, session_id=session_id)
+            if c_role and "Engineering / Tech" not in c_role and not any("target role" in r.lower() for r in recovered):
+                fact = f"Target role: {c_role}"
+                recovered.append(fact)
+                MentorDatabase.add_memory(fact, session_id=session_id)
+
+        # 3. Extract facts discussed in this session's past messages
+        if chat_msgs:
+            for msg in chat_msgs:
+                if msg.get("role") == "user":
+                    text = str(msg.get("content", ""))
+                    if len(text.strip()) >= 4:
+                        turn_facts = MentorMemoryExtractor._extract_pattern_facts(text, recovered)
+                        for f in turn_facts:
+                            clean = f.strip()
+                            if clean and clean not in recovered:
+                                recovered.append(clean)
+                                MentorDatabase.add_memory(clean, session_id=session_id)
+
+        return recovered
+
+    @classmethod
     def initialize_memories(
         cls,
         candidate_ctx: Optional[Dict[str, Any]] = None,
@@ -63,11 +132,19 @@ class MentorMemoryManager:
             except Exception as exc:
                 logger.warning(f"Could not load memories from database for session {s_id}: {exc}")
 
-        # 2. Check if already in session state for this session
-        if state_key in st.session_state and st.session_state[state_key] is not None:
+        # 2. Check if already in session state for this session (and has facts)
+        if state_key in st.session_state and st.session_state[state_key]:
             mems = st.session_state[state_key]
             st.session_state[cls.STATE_KEY] = mems
             return mems
+
+        # 3. If an existing session has messages in DB, recover its memories
+        if s_id:
+            recovered = cls._recover_memories_for_session(s_id)
+            if recovered:
+                st.session_state[state_key] = list(recovered)
+                st.session_state[cls.STATE_KEY] = list(recovered)
+                return st.session_state[state_key]
 
         # Fresh chat: starts completely empty for this chat alone
         st.session_state[state_key] = []
@@ -129,21 +206,32 @@ class MentorMemoryManager:
         return []
 
     @classmethod
-    def load_session_memories(cls, session_id: str) -> List[str]:
+    def load_session_memories(
+        cls,
+        session_id: str,
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[str]:
         """
         Called when restoring a conversation from History.
         Loads that specific chat's memories alone from database.
+        If this chat has no recorded memories in DB yet, automatically recovers memories
+        from this chat's recorded messages, session metadata, or legacy unscoped records.
         """
         state_key = cls._get_state_key(session_id)
+        db_mems: List[str] = []
         try:
             db_mems = MentorDatabase.get_memories(session_id=session_id)
         except Exception as exc:
             logger.warning(f"Could not load memories for session {session_id}: {exc}")
-            db_mems = []
+
+        # If this session has no recorded memories in DB yet, attempt recovery:
+        if not db_mems:
+            db_mems = cls._recover_memories_for_session(session_id, messages=messages)
 
         st.session_state[state_key] = list(db_mems)
         st.session_state[cls.STATE_KEY] = list(db_mems)
         return st.session_state[state_key]
+
 
     @classmethod
     def remove_memory(cls, index: int, session_id: Optional[str] = None) -> None:

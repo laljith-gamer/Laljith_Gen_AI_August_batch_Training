@@ -70,6 +70,16 @@ class MentorDatabaseManager:
             return []
 
     @classmethod
+    def get_session(cls, session_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve metadata for a specific session."""
+        try:
+            return MentorDatabase.get_session(session_id)
+        except Exception as exc:
+            logger.error(f"Failed to get session {session_id}: {exc}", exc_info=True)
+            return None
+
+
+    @classmethod
     def delete_session(cls, session_id: str) -> bool:
         """Delete a conversation session."""
         try:
