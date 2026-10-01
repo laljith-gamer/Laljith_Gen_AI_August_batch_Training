@@ -151,11 +151,10 @@ class MentorDatabase:
 
     @classmethod
     def delete_session(cls, session_id: str) -> bool:
-        """Delete a chat session, its associated messages, and its scoped memories."""
+        """Delete a chat session and all its associated messages."""
         cls.init_db()
         with cls._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM mentor_memories WHERE session_id = ?;", (session_id,))
             cursor.execute("DELETE FROM mentor_messages WHERE session_id = ?;", (session_id,))
             cursor.execute("DELETE FROM mentor_sessions WHERE id = ?;", (session_id,))
             conn.commit()
@@ -262,19 +261,11 @@ class MentorDatabase:
 
     @classmethod
     def get_memories(cls, session_id: Optional[str] = None) -> List[str]:
-        """Retrieve candidate memories as a list of facts, strictly scoped to a session."""
+        """Retrieve all stored candidate memories as a list of facts across chats."""
         cls.init_db()
         with cls._get_connection() as conn:
             cursor = conn.cursor()
-            if session_id:
-                cursor.execute(
-                    "SELECT fact FROM mentor_memories WHERE session_id = ? ORDER BY created_at ASC;",
-                    (session_id,),
-                )
-            else:
-                cursor.execute(
-                    "SELECT fact FROM mentor_memories WHERE session_id IS NULL OR session_id = '' ORDER BY created_at ASC;"
-                )
+            cursor.execute("SELECT fact FROM mentor_memories ORDER BY created_at ASC;")
             rows = cursor.fetchall()
             return [r["fact"] for r in rows if r["fact"]]
 
@@ -285,28 +276,18 @@ class MentorDatabase:
         key: Optional[str] = None,
         session_id: Optional[str] = None,
     ) -> bool:
-        """Add a candidate memory fact if it doesn't already exist for this session."""
+        """Add a candidate memory fact if it doesn't already exist."""
         clean_fact = fact.strip()
         if not clean_fact:
             return False
 
         cls.init_db()
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        mem_key = key or f"mem_{int(time.time() * 1000)}_{abs(hash(clean_fact + str(session_id))) % 10000}"
+        mem_key = key or f"mem_{int(time.time() * 1000)}_{abs(hash(clean_fact)) % 10000}"
 
         with cls._get_connection() as conn:
             cursor = conn.cursor()
-            if session_id:
-                cursor.execute(
-                    "SELECT key FROM mentor_memories WHERE session_id = ? AND fact = ?;",
-                    (session_id, clean_fact),
-                )
-            else:
-                cursor.execute(
-                    "SELECT key FROM mentor_memories WHERE (session_id IS NULL OR session_id = '') AND fact = ?;",
-                    (clean_fact,),
-                )
-
+            cursor.execute("SELECT key FROM mentor_memories WHERE fact = ?;", (clean_fact,))
             if cursor.fetchone():
                 return False  # Already exists
 
@@ -324,29 +305,17 @@ class MentorDatabase:
         clean_fact = fact.strip()
         with cls._get_connection() as conn:
             cursor = conn.cursor()
-            if session_id:
-                cursor.execute(
-                    "DELETE FROM mentor_memories WHERE session_id = ? AND fact = ?;",
-                    (session_id, clean_fact),
-                )
-            else:
-                cursor.execute(
-                    "DELETE FROM mentor_memories WHERE (session_id IS NULL OR session_id = '') AND fact = ?;",
-                    (clean_fact,),
-                )
+            cursor.execute("DELETE FROM mentor_memories WHERE fact = ?;", (clean_fact,))
             conn.commit()
             return cursor.rowcount > 0
 
     @classmethod
     def clear_memories(cls, session_id: Optional[str] = None) -> bool:
-        """Clear candidate memories for a session or globally."""
+        """Clear all candidate memories from the database."""
         cls.init_db()
         with cls._get_connection() as conn:
             cursor = conn.cursor()
-            if session_id:
-                cursor.execute("DELETE FROM mentor_memories WHERE session_id = ?;", (session_id,))
-            else:
-                cursor.execute("DELETE FROM mentor_memories WHERE session_id IS NULL OR session_id = '';")
+            cursor.execute("DELETE FROM mentor_memories;")
             conn.commit()
             return True
 

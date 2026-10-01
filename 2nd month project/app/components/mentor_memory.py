@@ -1,7 +1,7 @@
 """
 Persistent Candidate Memory Manager for SmartHire AI Career Mentor.
-Provides session-scoped long-term memory for candidate preferences, strengths,
-career goals, and target roles, persisted reliably in SQL database storage.
+Provides long-term memory for candidate preferences, strengths, career goals,
+and target roles, persisted reliably in SQL database storage across conversations.
 """
 
 from typing import List, Dict, Any, Optional
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class MentorMemoryManager:
-    """Manages candidate memory scoped per chat session and backed by SQL database."""
+    """Manages candidate memory bank persisted across conversations in SQL database."""
 
     STATE_KEY = "mentor_candidate_memories"
     STATE_KEY_PREFIX = "mentor_candidate_memories_"
@@ -32,10 +32,7 @@ class MentorMemoryManager:
 
     @classmethod
     def _get_state_key(cls, session_id: Optional[str] = None) -> str:
-        """Derive session state key based on session ID."""
-        s_id = cls._resolve_session_id(session_id)
-        if s_id:
-            return f"{cls.STATE_KEY_PREFIX}{s_id}"
+        """Derive session state key."""
         return cls.STATE_KEY
 
     @classmethod
@@ -43,82 +40,67 @@ class MentorMemoryManager:
         cls,
         candidate_ctx: Optional[Dict[str, Any]] = None,
         session_id: Optional[str] = None,
-        seed_from_resume: bool = False,
+        seed_from_resume: bool = True,
     ) -> List[str]:
         """
-        Initialize memories strictly for the specified or active session.
-        Checks database first for memories saved to this session.
-        If empty, initializes fresh with [] (empty list).
-        Does NOT auto-seed from resume unless seed_from_resume=True.
+        Initialize candidate memories across chats.
+        1. Checks SQLite database first for persistent candidate memories.
+        2. If empty and candidate has a profile/resume, auto-seeds core facts
+           (name, target role, experience, skills, bio summary) to DB and session state.
+        3. Returns all active candidate memories.
         """
-        s_id = cls._resolve_session_id(session_id)
-        state_key = cls._get_state_key(s_id)
+        # 1. Load existing memories from database
+        try:
+            persisted_mems = MentorDatabase.get_memories()
+            if persisted_mems:
+                st.session_state[cls.STATE_KEY] = list(persisted_mems)
+        except Exception as exc:
+            logger.warning(f"Could not load memories from database: {exc}")
 
-        # 1. Check database first for memories saved to this session
-        if s_id:
-            try:
-                persisted_mems = MentorDatabase.get_memories(session_id=s_id)
-                if persisted_mems:
-                    st.session_state[state_key] = persisted_mems
-                    st.session_state[cls.STATE_KEY] = persisted_mems
-                    return persisted_mems
-            except Exception as exc:
-                logger.warning(f"Could not load memories from database for session {s_id}: {exc}")
+        if cls.STATE_KEY not in st.session_state or st.session_state[cls.STATE_KEY] is None:
+            st.session_state[cls.STATE_KEY] = []
 
-        # 2. Check if already initialized in session state for this session
-        if state_key in st.session_state and st.session_state[state_key]:
-            mems = st.session_state[state_key]
-            st.session_state[cls.STATE_KEY] = mems
-            return mems
-
-        # 3. If explicit seeding from resume is requested
+        # 2. If candidate resume/profile is available, ensure core profile facts are seeded
         if seed_from_resume and candidate_ctx and candidate_ctx.get("has_resume"):
             initial = CandidateContextManager.get_initial_memories(candidate_ctx)
-            st.session_state[state_key] = initial
-            st.session_state[cls.STATE_KEY] = initial
+            current = st.session_state[cls.STATE_KEY]
             for fact in initial:
-                try:
-                    MentorDatabase.add_memory(fact, session_id=s_id)
-                except Exception as exc:
-                    logger.warning(f"Could not persist initial memory to database: {exc}")
-            return initial
+                if fact not in current:
+                    current.append(fact)
+                    try:
+                        MentorDatabase.add_memory(fact, session_id=session_id)
+                    except Exception as exc:
+                        logger.warning(f"Could not persist initial memory to database: {exc}")
+            st.session_state[cls.STATE_KEY] = current
 
-        # Fresh session: start completely empty for this chat alone
-        st.session_state[state_key] = []
-        st.session_state[cls.STATE_KEY] = []
-        return []
+        return st.session_state[cls.STATE_KEY]
 
     @classmethod
     def get_memories(cls, session_id: Optional[str] = None) -> List[str]:
-        """Return the active memories for a given session."""
-        s_id = cls._resolve_session_id(session_id)
-        state_key = cls._get_state_key(s_id)
-        if state_key in st.session_state:
-            return st.session_state[state_key]
+        """Return the active candidate memories bank across conversations."""
+        if cls.STATE_KEY in st.session_state and st.session_state[cls.STATE_KEY] is not None:
+            return st.session_state[cls.STATE_KEY]
         try:
-            db_mems = MentorDatabase.get_memories(session_id=s_id)
-            st.session_state[state_key] = db_mems
-            st.session_state[cls.STATE_KEY] = db_mems
-            return db_mems
+            db_mems = MentorDatabase.get_memories()
+            st.session_state[cls.STATE_KEY] = list(db_mems)
+            return st.session_state[cls.STATE_KEY]
         except Exception:
             return []
 
     @classmethod
     def add_memory(cls, memory_text: str, session_id: Optional[str] = None) -> None:
-        """Add a new memory fact to the specified session and persist to database."""
+        """Add a new candidate memory fact and persist to database and session state."""
         clean_text = memory_text.strip()
         if not clean_text:
             return
-        s_id = cls._resolve_session_id(session_id)
-        state_key = cls._get_state_key(s_id)
-        mems = cls.get_memories(s_id)
+
+        mems = cls.get_memories(session_id)
         if clean_text not in mems:
             mems.append(clean_text)
-            st.session_state[state_key] = mems
             st.session_state[cls.STATE_KEY] = mems
 
         try:
-            MentorDatabase.add_memory(clean_text, session_id=s_id)
+            MentorDatabase.add_memory(clean_text, session_id=session_id)
         except Exception as exc:
             logger.warning(f"Could not save memory to database: {exc}")
 
@@ -128,71 +110,42 @@ class MentorMemoryManager:
         new_session_id: str,
         candidate_ctx: Optional[Dict[str, Any]] = None,
         candidate_context: Optional[Dict[str, Any]] = None,
-        seed_from_resume: bool = False,
+        seed_from_resume: bool = True,
     ) -> List[str]:
         """
         Called when starting a '+ New chat'.
-        Initializes a fresh, empty memory state for the new session, strictly isolated from other chats.
+        Preserves candidate memory bank across chats so past memories remain accessible
+        in the new conversation, while seeding from resume if memories were empty.
         """
-        state_key = cls._get_state_key(new_session_id)
-        if seed_from_resume:
-            ctx = candidate_context if candidate_context is not None else (candidate_ctx or {})
-            if ctx.get("has_resume"):
-                initial = CandidateContextManager.get_initial_memories(ctx)
-                st.session_state[state_key] = initial
-                st.session_state[cls.STATE_KEY] = initial
-                for fact in initial:
-                    try:
-                        MentorDatabase.add_memory(fact, session_id=new_session_id)
-                    except Exception as exc:
-                        logger.warning(f"Could not persist initial memory: {exc}")
-                return initial
-
-        # Fresh session starts completely empty for this chat alone
-        st.session_state[state_key] = []
-        st.session_state[cls.STATE_KEY] = []
-        return []
+        ctx = candidate_context if candidate_context is not None else (candidate_ctx or {})
+        return cls.initialize_memories(candidate_ctx=ctx, session_id=new_session_id, seed_from_resume=seed_from_resume)
 
     @classmethod
     def load_session_memories(cls, session_id: str) -> List[str]:
         """
         Called when restoring a conversation from History.
-        Loads that specific session's memories from database into session state.
+        Loads all persistent candidate memories so they remain active.
         """
-        state_key = cls._get_state_key(session_id)
-        try:
-            db_mems = MentorDatabase.get_memories(session_id=session_id)
-        except Exception as exc:
-            logger.warning(f"Could not load memories for session {session_id}: {exc}")
-            db_mems = []
-        st.session_state[state_key] = db_mems
-        st.session_state[cls.STATE_KEY] = db_mems
-        return db_mems
+        return cls.get_memories(session_id=session_id)
 
     @classmethod
     def remove_memory(cls, index: int, session_id: Optional[str] = None) -> None:
-        """Remove a memory by index from the specified session."""
-        s_id = cls._resolve_session_id(session_id)
-        state_key = cls._get_state_key(s_id)
-        mems = cls.get_memories(s_id)
+        """Remove a memory by index from session state and database."""
+        mems = cls.get_memories(session_id)
         if 0 <= index < len(mems):
             removed_fact = mems.pop(index)
-            st.session_state[state_key] = mems
             st.session_state[cls.STATE_KEY] = mems
             try:
-                MentorDatabase.remove_memory(removed_fact, session_id=s_id)
+                MentorDatabase.remove_memory(removed_fact, session_id=session_id)
             except Exception as exc:
                 logger.warning(f"Could not remove memory from database: {exc}")
 
     @classmethod
     def clear_memories(cls, session_id: Optional[str] = None) -> None:
-        """Clear memories for the specified session from state and database."""
-        s_id = cls._resolve_session_id(session_id)
-        state_key = cls._get_state_key(s_id)
-        st.session_state[state_key] = []
+        """Clear candidate memories from state and database."""
         st.session_state[cls.STATE_KEY] = []
         try:
-            MentorDatabase.clear_memories(session_id=s_id)
+            MentorDatabase.clear_memories(session_id=session_id)
         except Exception as exc:
             logger.warning(f"Could not clear memories from database: {exc}")
 
@@ -206,10 +159,9 @@ class MentorMemoryManager:
     ) -> List[str]:
         """
         Autonomously inspect a chat interaction turn, extract new candidate facts,
-        add them to the session's active memories and database, and return newly discovered facts.
+        add them to candidate memories and database, and return newly discovered facts.
         """
-        s_id = cls._resolve_session_id(session_id)
-        existing = cls.get_memories(s_id)
+        existing = cls.get_memories(session_id)
         new_facts = MentorMemoryExtractor.extract_new_facts(
             user_text=user_text,
             assistant_text=assistant_text,
@@ -218,12 +170,12 @@ class MentorMemoryManager:
         )
         added: List[str] = []
         for fact in new_facts:
-            if fact not in cls.get_memories(s_id):
-                cls.add_memory(fact, session_id=s_id)
+            if fact not in cls.get_memories(session_id):
+                cls.add_memory(fact, session_id=session_id)
                 added.append(fact)
 
         if added:
-            logger.info(f"Autonomously extracted {len(added)} new candidate memories for session {s_id}: {added}")
+            logger.info(f"Autonomously extracted {len(added)} new candidate memories: {added}")
         return added
 
     @classmethod
@@ -231,11 +183,11 @@ class MentorMemoryManager:
         """Compatibility helper for migrating or syncing memories."""
         if not db_memories:
             return
-        s_id = cls._resolve_session_id(session_id)
         for item in db_memories:
             fact = item.get("fact") or item.get("text")
             if fact:
-                cls.add_memory(fact, session_id=s_id)
+                cls.add_memory(fact, session_id=session_id)
 
 
 __all__ = ["MentorMemoryManager"]
+
