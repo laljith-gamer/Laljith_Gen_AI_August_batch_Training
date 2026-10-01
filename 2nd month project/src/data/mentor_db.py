@@ -262,7 +262,7 @@ class MentorDatabase:
 
     @classmethod
     def get_memories(cls, session_id: Optional[str] = None) -> List[str]:
-        """Retrieve candidate memories as a list of facts, optionally scoped to a session."""
+        """Retrieve candidate memories as a list of facts, strictly scoped to a session."""
         cls.init_db()
         with cls._get_connection() as conn:
             cursor = conn.cursor()
@@ -272,7 +272,9 @@ class MentorDatabase:
                     (session_id,),
                 )
             else:
-                cursor.execute("SELECT fact FROM mentor_memories ORDER BY created_at ASC;")
+                cursor.execute(
+                    "SELECT fact FROM mentor_memories WHERE session_id IS NULL OR session_id = '' ORDER BY created_at ASC;"
+                )
             rows = cursor.fetchall()
             return [r["fact"] for r in rows if r["fact"]]
 
@@ -300,7 +302,10 @@ class MentorDatabase:
                     (session_id, clean_fact),
                 )
             else:
-                cursor.execute("SELECT key FROM mentor_memories WHERE fact = ?;", (clean_fact,))
+                cursor.execute(
+                    "SELECT key FROM mentor_memories WHERE (session_id IS NULL OR session_id = '') AND fact = ?;",
+                    (clean_fact,),
+                )
 
             if cursor.fetchone():
                 return False  # Already exists
@@ -325,7 +330,10 @@ class MentorDatabase:
                     (session_id, clean_fact),
                 )
             else:
-                cursor.execute("DELETE FROM mentor_memories WHERE fact = ?;", (clean_fact,))
+                cursor.execute(
+                    "DELETE FROM mentor_memories WHERE (session_id IS NULL OR session_id = '') AND fact = ?;",
+                    (clean_fact,),
+                )
             conn.commit()
             return cursor.rowcount > 0
 
@@ -338,7 +346,7 @@ class MentorDatabase:
             if session_id:
                 cursor.execute("DELETE FROM mentor_memories WHERE session_id = ?;", (session_id,))
             else:
-                cursor.execute("DELETE FROM mentor_memories;")
+                cursor.execute("DELETE FROM mentor_memories WHERE session_id IS NULL OR session_id = '';")
             conn.commit()
             return True
 

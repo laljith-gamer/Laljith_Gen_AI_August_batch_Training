@@ -76,9 +76,10 @@ def render_mentor_chat():
         st.session_state.mentor_session_id = f"session_{int(time.time() * 1000)}"
 
     if "mentor_chat_history" not in st.session_state:
-        # Load existing messages for active session from database if available
+        # Load existing messages and memories for active session from database if available
         loaded = MentorDatabaseManager.load_session(st.session_state.mentor_session_id)
         st.session_state.mentor_chat_history = loaded
+        MentorMemoryManager.load_session_memories(st.session_state.mentor_session_id)
 
     if "mentor_think_mode" not in st.session_state:
         st.session_state.mentor_think_mode = False
@@ -89,9 +90,9 @@ def render_mentor_chat():
     cand_name = candidate_ctx.get("name", "Candidate")
     cand_role = candidate_ctx.get("target_role", "Engineering / Tech")
 
-    # Initialize ChatGPT-style candidate memories scoped to the active session
+    # Initialize ChatGPT-style candidate memories scoped strictly to the active session
     session_id = st.session_state.mentor_session_id
-    MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id)
+    MentorMemoryManager.initialize_memories(candidate_ctx, session_id=session_id, seed_from_resume=False)
     memories = MentorMemoryManager.get_memories(session_id=session_id)
 
     # 2. Fetch saved sessions from database
@@ -139,8 +140,8 @@ def render_mentor_chat():
                 new_id = f"session_{int(time.time() * 1000)}"
                 st.session_state.mentor_chat_history = []
                 st.session_state.mentor_session_id = new_id
-                MentorMemoryManager.reset_session_memories(new_id, candidate_ctx)
-                st.toast("Started fresh conversation with new memory.")
+                MentorMemoryManager.reset_session_memories(new_id)
+                st.toast("Started fresh conversation with empty memory.")
                 st.rerun()
 
         with col_think:

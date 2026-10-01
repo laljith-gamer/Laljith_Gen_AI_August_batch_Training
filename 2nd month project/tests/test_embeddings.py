@@ -18,7 +18,11 @@ def test_local_fallback_embedding():
     with pytest.raises(ValueError, match="GEMINI_API_KEY is required"):
         manager.embed_texts(texts)
 
-def test_embedding_cache_mechanism(tmp_path):
+def test_embedding_cache_mechanism(tmp_path, monkeypatch):
+    test_cache = tmp_path / "test_cache.json"
+    import src.search.embed as embed_module
+    monkeypatch.setattr(embed_module, "CACHE_FILE", test_cache)
+
     manager = EmbeddingManager(api_key="mock_key", enable_cache=True)
     text = "Machine learning specialist"
     h = manager._hash_text(text, manager.model_name)

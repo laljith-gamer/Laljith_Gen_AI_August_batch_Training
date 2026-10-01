@@ -128,8 +128,8 @@ def test_mentor_memory_manager():
     if MentorMemoryManager.STATE_KEY in st.session_state:
         del st.session_state[MentorMemoryManager.STATE_KEY]
 
-    # Initialize
-    mems = MentorMemoryManager.initialize_memories(cand_ctx)
+    # Initialize with seed_from_resume=True
+    mems = MentorMemoryManager.initialize_memories(cand_ctx, seed_from_resume=True)
     assert len(mems) >= 4
     assert any("Jordan Lee" in m for m in mems)
     assert any("Staff Platform Engineer" in m for m in mems)
@@ -331,9 +331,9 @@ def test_session_scoped_memories(tmp_path):
     # Simulate New Chat -> Session B
     mems_b_mgr = MentorMemoryManager.reset_session_memories(session_b, candidate_context=cand_ctx)
     current_b = MentorMemoryManager.get_memories(session_id=session_b)
-    # Session B should have candidate profile facts, but NOT Session A's custom memory
+    # Session B starts completely fresh and empty: memories apply only on that chat alone
+    assert len(current_b) == 0
     assert "Only interested in remote work in Europe." not in current_b
-    assert any("Alex Mercer" in m for m in current_b)
 
     # Add memory to Session B
     MentorMemoryManager.add_memory("Needs minimum salary 120k GBP.", session_id=session_b)
